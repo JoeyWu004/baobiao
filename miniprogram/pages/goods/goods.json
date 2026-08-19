@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "商品库",
+  "usingComponents": {
+    "recognition-float": "/components/recognition-float/recognition-float"
+  }
+}

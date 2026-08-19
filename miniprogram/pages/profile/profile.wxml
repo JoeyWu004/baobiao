@@ -1,0 +1,122 @@
+<!--pages/profile/profile.wxml 我的-->
+<view class="page">
+  <view class="card user-card" bindtap="openProfileModal">
+    <image wx:if="{{avatarUrl}}" class="user-avatar" src="{{avatarUrl}}" mode="aspectFit" />
+    <view wx:else class="user-avatar user-avatar-fallback">
+      {{userInfo ? userInfo.nickname[0] : '微'}}
+    </view>
+    <view class="user-info">
+      <view class="user-nickname">{{userInfo ? userInfo.nickname : '未登录'}}</view>
+    </view>
+    <text class="menu-arrow">›</text>
+  </view>
+
+  <view class="card menu-card" bindtap="goPurchases">
+    <text class="menu-text">📊 收支统计</text>
+    <text class="menu-arrow">›</text>
+  </view>
+
+  <view class="card menu-card" bindtap="goTrash">
+    <text class="menu-text">🗑️ 回收站</text>
+    <text class="menu-arrow">›</text>
+  </view>
+
+  <view class="card menu-card" bindtap="openNoteModal">
+    <view class="menu-text-col">
+      <text class="menu-text">📄 服务说明</text>
+      <text class="menu-sub" wx:if="{{serviceNote}}">{{serviceNote}}</text>
+      <text class="menu-sub menu-sub-empty" wx:else>设置报表底部的提示语</text>
+    </view>
+    <text class="menu-arrow">›</text>
+  </view>
+
+  <!-- 识别设置：模型 + Kimi Key 二合一 -->
+  <view class="card menu-card" bindtap="openRecSettings">
+    <view class="menu-text-col">
+      <text class="menu-text">🔑 识别设置</text>
+      <text class="menu-sub" wx:if="{{kimiMasked || kimiModelLabel}}">{{kimiModelLabel}}{{kimiMasked ? ' · ' + kimiMasked : ''}}</text>
+      <text class="menu-sub menu-sub-empty" wx:else>设置发票识别模型与 Kimi API Key</text>
+    </view>
+    <text class="menu-arrow">›</text>
+  </view>
+
+  <view class="card logout-card" bindtap="onLogout">
+    <text class="logout-text">退出登录</text>
+  </view>
+
+  <view class="tip">
+    数据按微信账号隔离，切换账号后只能看到自己的报表和商品。
+  </view>
+
+  <!-- 服务说明编辑弹窗 -->
+  <view class="modal-mask" wx:if="{{showNoteModal}}" catchtouchmove="noop">
+    <view class="modal-panel">
+      <view class="modal-title">服务说明</view>
+      <textarea
+        class="modal-textarea"
+        placeholder="将显示在每张报表的底部"
+        value="{{noteValue}}"
+        maxlength="200"
+        bindinput="onNoteInput"
+      ></textarea>
+      <view class="modal-btns">
+        <button class="modal-btn modal-cancel" bindtap="closeNoteModal">取消</button>
+        <button class="modal-btn modal-ok" bindtap="saveNote">{{saving ? '保存中…' : '保存'}}</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 识别设置弹窗：模型选择 + Kimi Key 输入，二合一，一次保存 -->
+  <view class="modal-mask" wx:if="{{showRecModal}}" catchtouchmove="noop">
+    <view class="modal-panel">
+      <view class="modal-title">识别设置</view>
+      <view class="rec-row" bindtap="onSelectModel">
+        <text class="rec-row-label">识别模型</text>
+        <view class="rec-row-value">
+          <text>{{kimiModelLabel}}</text>
+          <text class="rec-row-arrow">›</text>
+        </view>
+      </view>
+      <view class="rec-row-label rec-key-label">Kimi API Key</view>
+      <input
+        class="modal-input"
+        password="{{true}}"
+        placeholder="sk-…"
+        value="{{kimiValue}}"
+        bindinput="onKimiInput"
+      />
+      <view class="modal-tip">模型与 Key 用于发票识别；Key 仅保存在你的账户下，输入时以圆点遮蔽。</view>
+      <view class="modal-btns">
+        <button class="modal-btn modal-cancel" bindtap="closeRecModal">取消</button>
+        <button class="modal-btn modal-ok" bindtap="saveRecSettings">{{saving ? '保存中…' : '保存'}}</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 编辑资料弹窗：微信头像 + 昵称 -->
+  <view class="modal-mask" wx:if="{{showProfileModal}}" catchtouchmove="noop">
+    <view class="modal-panel">
+      <view class="modal-title">编辑资料</view>
+      <view class="avatar-wrap">
+        <image wx:if="{{editAvatarUrl}}" class="avatar-wrap-img" src="{{editAvatarUrl}}" mode="aspectFit" />
+        <view wx:else class="avatar-wrap-empty">＋ 选择头像</view>
+        <button class="avatar-picker-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">选头像</button>
+      </view>
+      <view class="rec-key-label rec-key-margin">昵称</view>
+      <input
+        class="modal-input"
+        type="nickname"
+        placeholder="输入昵称，或聚焦后选微信昵称"
+        value="{{editNickname}}"
+        bindinput="onNickInput"
+      />
+      <view class="modal-tip">点头像选「使用微信头像」；昵称输入框聚焦后可直接点选微信昵称。</view>
+      <view class="modal-btns">
+        <button class="modal-btn modal-cancel" bindtap="closeProfileModal">取消</button>
+        <button class="modal-btn modal-ok" bindtap="saveProfile">{{saving ? '保存中…' : '保存'}}</button>
+      </view>
+    </view>
+  </view>
+
+  <recognition-float />
+</view>

@@ -1,0 +1,57 @@
+<!--pages/goods/goods.wxml 商品库-->
+<view class="page">
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="搜索商品名称 / 供应商"
+      value="{{keyword}}"
+      bindinput="onSearch"
+    />
+  </view>
+
+  <view class="toolbar">
+    <text class="toolbar-count">共 {{filtered.length}} 个商品</text>
+  </view>
+  <view class="toolbar-actions">
+    <button class="tool-btn" bindtap="goCategory">分类</button>
+    <button class="tool-btn rec-btn" bindtap="goInvoice">
+      发票
+      <view class="rec-badge" wx:if="{{recRunning}}">{{recDone}}/{{recTotal}}</view>
+      <view class="rec-dot" wx:elif="{{recPending}}"></view>
+    </button>
+    <button class="add-btn" bindtap="goAdd">＋ 新增商品</button>
+  </view>
+
+  <view class="goods-list" wx:if="{{filtered.length > 0}}">
+    <view class="card goods-card" wx:for="{{filtered}}" wx:key="_id">
+      <view class="goods-main" bindtap="goHistory" data-id="{{item._id}}" data-name="{{item.name}}">
+        <view class="goods-name">
+          {{item.name}}
+          <text class="goods-unit">{{item.unit}}</text>
+          <text class="goods-multi" wx:if="{{item.multiUnit}}">多单位</text>
+        </view>
+        <view class="goods-price">
+          <text class="sell">售 ¥{{item.sellPriceText}}</text>
+          <text class="cost">进 ¥{{item.costPriceText}}</text>
+        </view>
+        <view class="goods-supplier" wx:if="{{item.supplier}}">供应商：{{item.supplier}}</view>
+        <view class="goods-category" wx:if="{{item.categoryText}}">分类：{{item.categoryText}}</view>
+        <view class="goods-qty" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="goQtyHistory">库存 {{item.quantityText}}</view>
+      </view>
+      <view class="goods-ops">
+        <button class="op-btn" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="goQtyHistory">数量</button>
+        <button class="op-btn" data-id="{{item._id}}" bindtap="goEdit">编辑</button>
+        <button class="op-btn op-del" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="onDelete">删除</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:elif="{{!loading}}">
+    <view>还没有商品</view>
+    <view>点击右上角「新增商品」开始录入</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+
+  <recognition-float />
+</view>

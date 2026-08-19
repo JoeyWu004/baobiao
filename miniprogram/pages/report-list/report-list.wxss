@@ -1,0 +1,170 @@
+/* pages/report-list/report-list.wxss 报表（历史列表） */
+.page {
+  padding: 24rpx 24rpx 220rpx;
+}
+
+/* 顶部搜索栏 */
+.search-bar {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 16rpx 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.search-input {
+  font-size: 28rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+}
+
+/* 报表数量提示 + 交互说明 */
+.count-hint {
+  font-size: 24rpx;
+  color: #999;
+  margin: 0 8rpx 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hint-tips {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+/* 表头 */
+.table-head {
+  display: flex;
+  align-items: center;
+  background: #f0f0f0;
+  border-radius: 10rpx 10rpx 0 0;
+  padding: 20rpx 0;
+  font-size: 24rpx;
+  color: #888;
+  font-weight: 500;
+}
+
+.th {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.th-customer { flex: 1.5; justify-content: flex-start; padding-left: 20rpx; }
+.th-date { flex: 1; justify-content: center; }
+.th-status { flex: 0.9; justify-content: center; }
+.th-amount { flex: 1.2; justify-content: flex-end; padding-right: 20rpx; }
+
+.th-arrow {
+  font-size: 20rpx;
+  color: #07c160;
+}
+
+/* 报表行（左滑容器） */
+.row-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 左滑操作层：三个状态按钮 */
+.row-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+}
+
+.act {
+  width: 150rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 26rpx;
+}
+
+.act-pending { background: #9e9e9e; }
+.act-doing { background: #ff9f2e; }
+.act-done { background: #07c160; }
+
+/* 内容层 */
+.row-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  padding: 26rpx 0;
+  border-bottom: 2rpx solid #f2f2f2;
+  font-size: 28rpx;
+  transition: transform 0.25s ease;
+}
+
+.row-content:active {
+  background: #fafafa;
+}
+
+.row-open {
+  transform: translateX(-450rpx);
+}
+
+.td-customer {
+  flex: 1.5;
+  padding-left: 20rpx;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8rpx;
+}
+
+.td-date {
+  flex: 1;
+  text-align: center;
+  color: #666;
+  font-size: 26rpx;
+}
+
+.td-status {
+  flex: 0.9;
+  text-align: center;
+  font-size: 22rpx;
+}
+
+.st-pending { color: #9e9e9e; }
+.st-doing { color: #ff9f2e; }
+.st-done { color: #07c160; }
+
+.td-amount {
+  flex: 1.2;
+  text-align: right;
+  padding-right: 20rpx;
+  color: #fa5151;
+  font-weight: 600;
+  font-size: 30rpx;
+}
+
+/* 悬浮新建按钮（悬浮于底部菜单栏上方） */
+.fab {
+  position: fixed;
+  right: 40rpx;
+  bottom: 130rpx;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #07c160;
+  color: #fff;
+  font-size: 60rpx;
+  font-weight: 300;
+  line-height: 100rpx;
+  text-align: center;
+  box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.4);
+  z-index: 10;
+}
+
+.fab:active {
+  transform: scale(0.92);
+  opacity: 0.9;
+}

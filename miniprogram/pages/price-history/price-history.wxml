@@ -1,0 +1,59 @@
+<!--pages/price-history/price-history.wxml 价格历史-->
+<view class="page">
+  <!-- 价格变动图表（常驻） -->
+  <view class="card chart-card">
+    <view class="chart-title">价格变动</view>
+    <view class="chart-wrap">
+      <canvas type="2d" id="priceChart" class="price-chart"></canvas>
+      <text class="chart-empty" wx:if="{{!hasData && !loading}}">暂无价格变动数据</text>
+    </view>
+  </view>
+
+  <!-- 筛选：全部 / 售价 / 进价 -->
+  <view class="filter-bar">
+    <view
+      class="filter-chip {{filter === 'all' ? 'chip-active' : ''}}"
+      data-filter="all"
+      bindtap="setFilter"
+    >全部</view>
+    <view
+      class="filter-chip {{filter === 'sell' ? 'chip-active' : ''}}"
+      data-filter="sell"
+      bindtap="setFilter"
+    >售价</view>
+    <view
+      class="filter-chip {{filter === 'cost' ? 'chip-active' : ''}}"
+      data-filter="cost"
+      bindtap="setFilter"
+    >进价</view>
+  </view>
+
+  <!-- 历史记录 -->
+  <view
+    class="card history-card"
+    wx:for="{{list}}"
+    wx:key="_id"
+    wx:if="{{filter === 'all' || item.priceType === filter}}"
+    data-id="{{item._id}}"
+    bindlongpress="onDeleteRecord"
+  >
+    <view class="history-top">
+      <text class="history-time">{{item.timeText}}</text>
+      <view class="history-tags">
+        <text class="history-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
+        <text class="history-type {{item.typeClass}}">{{item.typeLabel}}</text>
+      </view>
+    </view>
+    <view class="history-change">
+      <text class="old">¥{{item.oldText}}</text>
+      <text class="arrow">→</text>
+      <text class="new">¥{{item.newText}}</text>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && list.length === 0}}">暂无价格变动记录</view>
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+
+  <!-- 交互说明 -->
+  <view class="hist-hint" wx:if="{{list.length > 0}}">长按记录可删除</view>
+</view>

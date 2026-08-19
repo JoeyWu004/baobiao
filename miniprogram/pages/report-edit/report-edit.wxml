@@ -1,0 +1,189 @@
+<!--pages/report-edit/report-edit.wxml 新建报表-->
+<view class="page">
+  <!-- 单据头部 -->
+  <view class="card head-card">
+    <view class="head-row">
+      <text class="head-label">名称</text>
+      <input
+        class="input-box"
+        placeholder="报表名称（默认：报表）"
+        value="{{title}}"
+        bindinput="onTitleInput"
+      />
+    </view>
+    <view class="head-row">
+      <text class="head-label">客户</text>
+      <input
+        class="input-box"
+        placeholder="客户名称（必填）"
+        value="{{customerName}}"
+        bindinput="onCustomerInput"
+      />
+    </view>
+    <view class="head-row">
+      <text class="head-label">日期</text>
+      <picker mode="date" value="{{date}}" bindchange="onDateChange">
+        <view class="date-value">{{date}}</view>
+      </picker>
+    </view>
+    <view class="head-row">
+      <text class="head-label">备注</text>
+      <input
+        class="input-box"
+        placeholder="选填，如：含安装"
+        value="{{remark}}"
+        bindinput="onRemarkInput"
+      />
+    </view>
+  </view>
+
+  <!-- 位置信息（可选） -->
+  <view class="card head-card">
+    <view class="head-row">
+      <text class="head-label">位置</text>
+      <input
+        class="input-box"
+        placeholder="选填，具体位置"
+        value="{{address}}"
+        bindinput="onAddressInput"
+      />
+      <view class="locate-btn {{locating ? 'locating' : ''}}" bindtap="locate">
+        {{locating ? '定位中' : '定位'}}
+      </view>
+    </view>
+    <view class="loc-info" wx:if="{{location}}">
+      <text class="loc-coords">{{location.address || location.name || '已定位'}}</text>
+      <text class="loc-clear" bindtap="clearLocation">清除</text>
+    </view>
+  </view>
+
+  <!-- 明细行 -->
+  <view class="items">
+    <view class="item-head">
+      <text class="col-name">名称 / 说明</text>
+      <text class="col-unit">单位</text>
+      <text class="col-qty">数量</text>
+      <text class="col-price">单价</text>
+      <text class="col-amount">金额</text>
+    </view>
+
+    <view
+      class="card item-card"
+      wx:for="{{items}}"
+      wx:key="uid"
+      bindlongpress="toggleItemRemark"
+      data-index="{{index}}"
+    >
+      <view class="item-row1">
+        <block wx:if="{{item.type === 'goods'}}">
+          <text class="item-name">{{item.name}}</text>
+          <view class="item-tag" wx:if="{{item.overridden}}">已改价</view>
+        </block>
+        <input
+          wx:else
+          class="item-desc"
+          placeholder="工时说明，如：拆装空调"
+          value="{{item.desc}}"
+          data-field="desc"
+          data-index="{{index}}"
+          bindinput="onItemInput"
+        />
+        <view class="item-del" data-index="{{index}}" bindtap="removeItem" catchlongpress="noop">删</view>
+      </view>
+      <!-- 商品行：单位(可切换) + 数量 + 单价 + 金额 -->
+      <view class="item-row2" wx:if="{{item.type === 'goods'}}">
+        <view
+          class="item-unit {{item.units && item.units.length > 1 ? 'unit-switch' : ''}}"
+          data-index="{{index}}"
+          bindtap="switchUnit"
+          catchlongpress="noop"
+        >{{item.unit}}<text wx:if="{{item.units && item.units.length > 1}}" class="unit-hint">⇄</text></view>
+        <view class="qty-stepper">
+          <view
+            class="step-btn"
+            data-index="{{index}}"
+            data-delta="-1"
+            bindtap="onQtyStep"
+            catchlongpress="noop"
+          >−</view>
+          <input
+            class="qty-input"
+            type="digit"
+            value="{{item.quantity}}"
+            data-field="quantity"
+            data-index="{{index}}"
+            bindinput="onItemInput"
+          />
+          <view
+            class="step-btn"
+            data-index="{{index}}"
+            data-delta="1"
+            bindtap="onQtyStep"
+            catchlongpress="noop"
+          >＋</view>
+        </view>
+        <input
+          class="item-input price"
+          type="digit"
+          value="{{item.price}}"
+          data-field="price"
+          data-index="{{index}}"
+          bindinput="onItemInput"
+        />
+        <text class="item-amount">¥{{item.amountText}}</text>
+      </view>
+      <!-- 工时行：单位(工时) + 总金额 -->
+      <view class="item-row2" wx:else>
+        <text class="item-unit">工时</text>
+        <text class="item-label">金额</text>
+        <input
+          class="item-input labor-amount"
+          type="digit"
+          placeholder="总金额"
+          value="{{item.amount}}"
+          data-field="amount"
+          data-index="{{index}}"
+          bindinput="onItemInput"
+        />
+      </view>
+      <!-- 长按行展开的备注编辑框 -->
+      <view class="item-remark" wx:if="{{item.remarkOpen}}">
+        <text class="item-remark-label">备注</text>
+        <input
+          class="item-remark-input"
+          placeholder="选填，如：含安装 / 延保一年"
+          value="{{item.remark}}"
+          data-field="remark"
+          data-index="{{index}}"
+          bindinput="onItemInput"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加按钮 -->
+  <view class="add-row">
+    <button class="btn-plain add-btn" bindtap="openPicker">＋ 添加商品</button>
+    <button class="btn-plain add-btn" bindtap="addLabor">＋ 添加工时</button>
+  </view>
+
+  <!-- 交互说明 -->
+  <view class="add-hint">长按明细行可新增 / 编辑备注</view>
+
+  <!-- 底部合计 + 保存 -->
+  <view class="footer">
+    <view class="footer-total">
+      <text class="footer-label">合计金额</text>
+      <text class="footer-amount">¥{{totalText}}</text>
+    </view>
+    <button
+      class="btn-primary footer-save {{saving ? 'btn-disabled' : ''}}"
+      bindtap="onSave"
+    >
+      {{saving ? '保存中…' : saveBtnText}}
+    </button>
+  </view>
+
+  <!-- 商品选择弹层 -->
+  <goods-picker show="{{showPicker}}" bindselect="onPickProducts" bindclose="closePicker" />
+</view>

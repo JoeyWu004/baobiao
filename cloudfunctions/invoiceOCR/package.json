@@ -1,0 +1,9 @@
+{
+  "name": "invoiceOCR",
+  "version": "1.0.0",
+  "description": "发票图片 Kimi 视觉识别",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

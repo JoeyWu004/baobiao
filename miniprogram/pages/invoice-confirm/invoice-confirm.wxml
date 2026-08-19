@@ -1,0 +1,76 @@
+<!--pages/invoice-confirm/invoice-confirm.wxml 发票确认（逐张）-->
+<view class="page">
+  <!-- 发票切换器 -->
+  <view class="stepper">
+    <view class="step-btn {{currentIndex === 0 ? 'step-disabled' : ''}}" bindtap="goPrev">‹ 上一张</view>
+    <view class="step-info">第 {{currentIndex + 1}} / {{invoices.length}} 张</view>
+    <view class="step-btn {{currentIndex === invoices.length - 1 ? 'step-disabled' : ''}}" bindtap="goNext">下一张 ›</view>
+  </view>
+
+  <!-- 单据信息（当前发票） -->
+  <view class="card head-card">
+    <view class="head-row">
+      <text class="head-label">供应商</text>
+      <input
+        class="input-box"
+        placeholder="供应商名称"
+        value="{{invoices[currentIndex].supplier}}"
+        bindinput="onSupplierInput"
+      />
+    </view>
+    <view class="head-row">
+      <text class="head-label">日期</text>
+      <picker mode="date" value="{{invoices[currentIndex].date}}" bindchange="onDateChange">
+        <view class="date-value">{{invoices[currentIndex].date}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <!-- 发票原图（当前发票） -->
+  <view class="card img-card" wx:if="{{invoices[currentIndex].tempUrl}}">
+    <view class="img-title">发票原图</view>
+    <image class="inv-img" src="{{invoices[currentIndex].tempUrl}}" mode="widthFix" bindtap="previewImg" data-src="{{invoices[currentIndex].tempUrl}}" />
+  </view>
+
+  <!-- 明细（当前发票） -->
+  <view class="items">
+    <view class="item-head">
+      <text class="col-name">名称</text>
+      <text class="col-unit">单位</text>
+      <text class="col-qty">数量</text>
+      <text class="col-price">单价</text>
+      <text class="col-amount">金额</text>
+    </view>
+
+    <view class="card item-card" wx:for="{{invoices[currentIndex].items}}" wx:key="uid" wx:for-index="index" wx:for-item="item">
+      <view class="item-row">
+        <view class="item-name-wrap">
+          <input
+            class="item-name"
+            placeholder="商品名称"
+            value="{{item.name}}"
+            data-field="name"
+            data-index="{{index}}"
+            bindinput="onItemInput"
+          />
+          <view class="item-del" data-index="{{index}}" bindtap="removeItem">×</view>
+        </view>
+        <input class="item-input unit" placeholder="单位" value="{{item.unit}}" data-field="unit" data-index="{{index}}" bindinput="onItemInput" />
+        <input class="item-input qty" type="digit" value="{{item.quantity}}" data-field="quantity" data-index="{{index}}" bindinput="onItemInput" />
+        <input class="item-input price" type="digit" value="{{item.price}}" data-field="price" data-index="{{index}}" bindinput="onItemInput" />
+        <text class="item-amount">¥{{item.amountText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <button class="btn-plain add-row-btn" bindtap="addItem">＋ 添加一行</button>
+
+  <!-- 操作 -->
+  <view class="ops">
+    <button class="btn-primary op-btn" bindtap="saveCurrentAndNext">📦 入库并切下一张</button>
+    <button class="btn-plain op-btn" bindtap="saveToGoods">📦 有效发票一键入库</button>
+    <button class="btn-plain op-btn op-btn-danger" bindtap="deleteCurrent">🗑️ 删除这张</button>
+  </view>
+
+  <view class="tip">「入库并切下一张」把当前这张有效发票入库后跳到下一张；「有效发票一键入库」只处理有明细的发票，无效的跳过保留；无效发票可用「删除这张」丢弃。每张发票分别记一条进货记录。</view>
+</view>

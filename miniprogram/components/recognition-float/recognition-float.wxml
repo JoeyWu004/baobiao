@@ -1,0 +1,8 @@
+<!--components/recognition-float/recognition-float.wxml 识别完成弹窗（中下位置）-->
+<view class="rf-mask" wx:if="{{visible}}" bindtap="goConfirm">
+  <view class="rf-pop" catchtap="goConfirm">
+    <view class="rf-title">✅ 发票识别完成</view>
+    <view class="rf-sub">共 {{total}} 张，{{success}} 张有明细{{failed ? '，' + failed + ' 张失败' : ''}}</view>
+    <view class="rf-btn">去确认 ›</view>
+  </view>
+</view>

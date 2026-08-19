@@ -1,0 +1,80 @@
+<!--pages/report-list/report-list.wxml 报表（历史列表）-->
+<view class="page">
+  <!-- 顶部搜索栏 -->
+  <view class="search-bar">
+    <input
+      class="search-input"
+      placeholder="搜索客户 / 商品 / 地点"
+      value="{{keyword}}"
+      bindinput="onSearch"
+    />
+  </view>
+
+  <!-- 报表数量提示 + 交互说明 -->
+  <view class="count-hint" wx:if="{{!loading}}">
+    <text>共 {{totalCount}} 张报表</text>
+    <text class="hint-tips">长按删除 · 左滑改状态</text>
+  </view>
+
+  <!-- 表头（点击排序） -->
+  <view class="table-head" wx:if="{{filtered.length > 0}}">
+    <view class="th th-customer" data-key="customer" bindtap="onSortTap">
+      <text>客户</text>
+      <text class="th-arrow" wx:if="{{sortKey === 'customer'}}">{{sortOrder === 'asc' ? '▲' : '▼'}}</text>
+    </view>
+    <view class="th th-date" data-key="date" bindtap="onSortTap">
+      <text>日期</text>
+      <text class="th-arrow" wx:if="{{sortKey === 'date'}}">{{sortOrder === 'asc' ? '▲' : '▼'}}</text>
+    </view>
+    <view class="th th-status" data-key="status" bindtap="onSortTap">
+      <text>状态</text>
+      <text class="th-arrow" wx:if="{{sortKey === 'status'}}">{{sortOrder === 'asc' ? '▲' : '▼'}}</text>
+    </view>
+    <view class="th th-amount" data-key="amount" bindtap="onSortTap">
+      <text>金额</text>
+      <text class="th-arrow" wx:if="{{sortKey === 'amount'}}">{{sortOrder === 'asc' ? '▲' : '▼'}}</text>
+    </view>
+  </view>
+
+  <!-- 报表行 -->
+  <view class="row-wrap" wx:for="{{filtered}}" wx:key="_id">
+    <!-- 左滑操作层：三个状态 -->
+    <view class="row-actions">
+      <view class="act act-pending" data-index="{{index}}" data-status="pending" bindtap="onSetStatus">待完成</view>
+      <view class="act act-doing" data-index="{{index}}" data-status="doing" bindtap="onSetStatus">进行中</view>
+      <view class="act act-done" data-index="{{index}}" data-status="done" bindtap="onSetStatus">已完成</view>
+    </view>
+
+    <!-- 内容层 -->
+    <view
+      class="row-content {{item.open ? 'row-open' : ''}}"
+      data-index="{{index}}"
+      data-id="{{item._id}}"
+      bindtouchstart="onTouchStart"
+      bindtouchmove="onTouchMove"
+      bindtouchend="onTouchEnd"
+      bindlongpress="onLongPress"
+      bindtap="goDetail"
+    >
+      <text class="td-customer">{{item.customerName}}</text>
+      <text class="td-date">{{item.date}}</text>
+      <text class="td-status {{item.statusClass}}">{{item.statusText}}</text>
+      <text class="td-amount">¥{{item.totalText}}</text>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && filtered.length === 0}}">
+    <view wx:if="{{keyword}}">没有匹配「{{keyword}}」的报表</view>
+    <block wx:else>
+      <view>还没有报表</view>
+      <view>点击右下角「＋」开始开单</view>
+    </block>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+
+  <!-- 悬浮新建按钮 -->
+  <view class="fab" bindtap="goNew">＋</view>
+
+  <recognition-float />
+</view>

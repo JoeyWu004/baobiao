@@ -1,0 +1,62 @@
+<!--pages/purchase-detail/purchase-detail.wxml 进货明细（可编辑）-->
+<view class="page">
+  <view class="empty" wx:if="{{loading}}">加载中…</view>
+
+  <block wx:if="{{purchase}}">
+    <view class="card head-card">
+      <view class="head-row">
+        <text class="head-label">供应商</text>
+        <input class="input-box" placeholder="供应商名称" value="{{purchase.supplier}}" bindinput="onSupplierInput" />
+      </view>
+      <view class="head-row">
+        <text class="head-label">日期</text>
+        <picker mode="date" value="{{purchase.date}}" bindchange="onDateChange">
+          <view class="date-value">{{purchase.date}}</view>
+        </picker>
+      </view>
+      <view class="head-row">
+        <text class="head-label">合计</text>
+        <text class="head-total">¥{{totalText}}</text>
+      </view>
+    </view>
+
+    <view class="items">
+      <view class="item-head">
+        <text class="col-name">名称</text>
+        <text class="col-unit">单位</text>
+        <text class="col-qty">数量</text>
+        <text class="col-price">单价</text>
+        <text class="col-amount">金额</text>
+      </view>
+      <view class="card item-card" wx:for="{{items}}" wx:key="uid" wx:for-index="index" wx:for-item="item">
+        <view class="item-row">
+          <view class="item-name-wrap">
+            <input
+              class="item-name"
+              placeholder="商品名称"
+              value="{{item.name}}"
+              data-field="name"
+              data-index="{{index}}"
+              bindinput="onItemInput"
+            />
+            <view class="item-del" data-index="{{index}}" bindtap="removeItem">×</view>
+          </view>
+          <input class="item-input unit" placeholder="单位" value="{{item.unit}}" data-field="unit" data-index="{{index}}" bindinput="onItemInput" />
+          <input class="item-input qty" type="digit" value="{{item.quantity}}" data-field="quantity" data-index="{{index}}" bindinput="onItemInput" />
+          <input class="item-input price" type="digit" value="{{item.price}}" data-field="price" data-index="{{index}}" bindinput="onItemInput" />
+          <text class="item-amount">¥{{item.amountText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <button class="btn-plain add-row-btn" bindtap="addItem">＋ 添加一行</button>
+
+    <view class="card img-card" wx:if="{{imageUrl}}">
+      <view class="img-title">发票原图</view>
+      <image class="inv-img" src="{{imageUrl}}" mode="widthFix" bindtap="previewImg" data-src="{{imageUrl}}" />
+    </view>
+
+    <button class="btn-primary save-btn" bindtap="onSave">{{saving ? '保存中…' : '保存修改'}}</button>
+    <button class="btn-plain report-btn" bindtap="openReport">📄 用这张开报表</button>
+  </block>
+</view>

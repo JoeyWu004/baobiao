@@ -1,0 +1,9 @@
+{
+  "name": "reportOps",
+  "version": "1.0.0",
+  "description": "报表事务保存与价格历史查询",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

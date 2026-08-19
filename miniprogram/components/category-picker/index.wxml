@@ -1,0 +1,64 @@
+<!--components/category-picker/index.wxml-->
+<view wx:if="{{show}}" class="picker-mask" catchtouchmove="noop">
+  <view class="picker-panel">
+    <view class="picker-header">
+      <text class="picker-title">选择分类</text>
+      <view class="picker-close" bindtap="onClose">完成</view>
+    </view>
+
+    <!-- 面包屑 / 路径 -->
+    <view class="crumb" wx:if="{{breadcrumb.length > 0}}">
+      <text class="crumb-text">{{pathText}}</text>
+      <text class="crumb-back" bindtap="goBack">‹ 上一步</text>
+    </view>
+
+    <view class="picker-list">
+      <view
+        class="picker-item"
+        wx:for="{{level}}"
+        wx:key="_id"
+        data-id="{{item._id}}"
+        bindtap="tapNode"
+      >
+        <view class="picker-item-main">
+          <view class="picker-item-name">{{item.name}}</view>
+          <view class="picker-item-child" wx:if="{{item.level < 9}}">点此继续下钻 ›</view>
+        </view>
+      </view>
+
+      <view class="picker-empty" wx:if="{{!loading && level.length === 0}}">
+        <block wx:if="{{breadcrumb.length === 0}}">
+          还没有分类，请先到「进货-分类管理」添加
+        </block>
+        <block wx:else>
+          此分类下暂无子分类
+        </block>
+      </view>
+    </view>
+
+    <!-- 底部操作 -->
+    <view class="picker-footer">
+      <button class="footer-btn footer-back" bindtap="goBack">上一步</button>
+      <button class="footer-btn footer-add" bindtap="openAddModal">＋ 新增</button>
+      <button class="footer-btn footer-confirm" bindtap="confirm">就选这一层</button>
+    </view>
+  </view>
+
+  <!-- 新增分类输入弹窗 -->
+  <view class="modal-mask" wx:if="{{showAddModal}}" catchtouchmove="noop">
+    <view class="modal-panel">
+      <view class="modal-title">在此层级新增分类</view>
+      <input
+        class="modal-input"
+        placeholder="分类名称"
+        value="{{addName}}"
+        focus
+        bindinput="onAddInput"
+      />
+      <view class="modal-btns">
+        <button class="modal-btn modal-cancel" bindtap="closeAddModal">取消</button>
+        <button class="modal-btn modal-ok" bindtap="confirmAdd">确定</button>
+      </view>
+    </view>
+  </view>
+</view>

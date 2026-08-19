@@ -1,0 +1,85 @@
+/* pages/category-goods/category-goods.wxss 分类商品 */
+.page {
+  padding: 28rpx 28rpx 80rpx;
+}
+
+.count-bar {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.prod-card {
+  padding: 28rpx;
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.prod-main {
+  padding-bottom: 18rpx;
+}
+
+.prod-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 14rpx;
+}
+
+.prod-unit {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 14rpx;
+  font-weight: 400;
+}
+
+.prod-price {
+  display: flex;
+  gap: 32rpx;
+  font-size: 28rpx;
+}
+
+.sell {
+  color: #fa5151;
+  font-weight: 600;
+}
+
+.cost {
+  color: #999;
+}
+
+.prod-cat {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #576b95;
+}
+
+.prod-ops {
+  display: flex;
+  gap: 20rpx;
+  border-top: 2rpx solid #f0f0f0;
+  padding-top: 18rpx;
+}
+
+.op-btn {
+  font-size: 27rpx;
+  color: #576b95;
+  padding: 14rpx 40rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  line-height: 1.4;
+}
+
+.op-del {
+  color: #fa5151;
+}
+
+.empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 140rpx 0;
+  line-height: 2;
+}

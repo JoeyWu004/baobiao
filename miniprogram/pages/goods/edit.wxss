@@ -1,0 +1,165 @@
+/* pages/goods/edit.wxss 商品编辑 */
+.page {
+  padding: 24rpx 24rpx 60rpx;
+}
+
+.form-card {
+  display: flex;
+  flex-direction: column;
+  gap: 28rpx;
+}
+
+.form-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.form-label {
+  width: 160rpx;
+  font-size: 28rpx;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.required::before {
+  content: "*";
+  color: #fa5151;
+  margin-right: 4rpx;
+}
+
+.category-value.placeholder {
+  color: #999;
+}
+
+.category-arrow {
+  color: #ccc;
+  font-size: 32rpx;
+  padding-right: 8rpx;
+}
+
+/* 多单位编辑 */
+.units-card {
+  margin: 24rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.units-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.units-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.units-add {
+  font-size: 26rpx;
+  color: #07c160;
+  border: 2rpx solid #07c160;
+  border-radius: 8rpx;
+  padding: 8rpx 20rpx;
+}
+
+.unit-row {
+  background: #f9f9f9;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.unit-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.unit-input {
+  flex: 1;
+  height: 60rpx;
+  line-height: 60rpx;
+  background: #fff;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  font-size: 26rpx;
+}
+
+.unit-name {
+  flex: 2;
+}
+
+.unit-del {
+  font-size: 24rpx;
+  color: #fa5151;
+  border: 2rpx solid #f0d0d0;
+  border-radius: 8rpx;
+  padding: 6rpx 16rpx;
+  flex-shrink: 0;
+}
+
+.unit-label {
+  font-size: 24rpx;
+  color: #888;
+  flex-shrink: 0;
+}
+
+/* 库存步进：－/＋ */
+.qty-stepper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.qty-btn {
+  width: 64rpx;
+  height: 60rpx;
+  background: #fff;
+  border: 2rpx solid #d8d8d8;
+  color: #333;
+  font-size: 34rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.qty-btn:active {
+  background: #f2f2f2;
+}
+
+.qty-btn-minus {
+  border-radius: 8rpx 0 0 8rpx;
+}
+
+.qty-btn-plus {
+  border-radius: 0 8rpx 8rpx 0;
+}
+
+.qty-input {
+  border-radius: 0;
+  text-align: center;
+  min-width: 0;
+}
+
+.units-tip {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.tip {
+  font-size: 24rpx;
+  color: #999;
+  margin: 24rpx 8rpx;
+}
+
+.save-btn {
+  margin-top: 16rpx;
+}

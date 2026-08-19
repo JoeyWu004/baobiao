@@ -1,0 +1,29 @@
+<!--pages/category-goods/category-goods.wxml 分类商品-->
+<view class="page">
+  <view class="count-bar" wx:if="{{!loading}}">共 {{list.length}} 个商品</view>
+
+  <view class="card prod-card" wx:for="{{list}}" wx:key="_id">
+    <view class="prod-main" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="goHistory">
+      <view class="prod-name">
+        {{item.name}}
+        <text class="prod-unit">{{item.unit}}</text>
+      </view>
+      <view class="prod-price">
+        <text class="sell">售 ¥{{item.sellPriceText}}</text>
+        <text class="cost">进 ¥{{item.costPriceText}}</text>
+      </view>
+      <view class="prod-cat" wx:if="{{item.categoryText}}">{{item.categoryText}}</view>
+    </view>
+    <view class="prod-ops">
+      <button class="op-btn" data-id="{{item._id}}" bindtap="goEdit">编辑</button>
+      <button class="op-btn op-del" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="onDelete">删除</button>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && list.length === 0}}">
+    <view>该分类下暂无商品</view>
+    <view>去「进货-新增商品」选择此分类</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+</view>

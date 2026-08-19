@@ -1,0 +1,312 @@
+/* pages/report-edit/report-edit.wxss 新建报表 */
+.page {
+  padding: 24rpx 24rpx calc(260rpx + env(safe-area-inset-bottom));
+}
+
+.head-card {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.head-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.head-label {
+  width: 100rpx;
+  font-size: 28rpx;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.date-value {
+  height: 76rpx;
+  line-height: 76rpx;
+  background: #f7f7f7;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+}
+
+.locate-btn {
+  height: 52rpx;
+  line-height: 52rpx;
+  padding: 0 12rpx;
+  font-size: 24rpx;
+  color: #07c160;
+  border: 2rpx solid #07c160;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+  background: #fff;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.locate-btn.locating {
+  color: #999;
+  border-color: #ccc;
+}
+
+.locate-btn:active {
+  background: #eafaf0;
+}
+
+.loc-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-left: 120rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.loc-coords {
+  font-family: monospace;
+}
+
+.loc-clear {
+  color: #fa5151;
+  padding: 8rpx;
+}
+
+.items {
+  margin-bottom: 24rpx;
+}
+
+.item-head {
+  display: flex;
+  font-size: 22rpx;
+  color: #999;
+  padding: 0 8rpx 12rpx;
+}
+
+.col-name { flex: 2.2; }
+.col-unit { flex: 0.8; text-align: center; }
+.col-qty { flex: 1.1; text-align: center; }
+.col-price { flex: 1; text-align: center; }
+.col-amount { flex: 1.2; text-align: right; }
+
+.item-card {
+  margin-bottom: 16rpx;
+  padding: 20rpx 24rpx;
+}
+
+.item-row1 {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.item-name {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #222;
+}
+
+.item-tag {
+  font-size: 20rpx;
+  color: #fa5151;
+  border: 2rpx solid #fa5151;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  flex-shrink: 0;
+}
+
+.item-desc {
+  flex: 1;
+  height: 64rpx;
+  line-height: 64rpx;
+  background: #f7f7f7;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+}
+
+.item-del {
+  font-size: 24rpx;
+  color: #fa5151;
+  padding: 8rpx 12rpx;
+  border: 2rpx solid #f0d0d0;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.item-row2 {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.item-unit {
+  flex: 0.8;
+  font-size: 26rpx;
+  color: #666;
+  text-align: center;
+}
+
+.unit-switch {
+  color: #07c160;
+  border: 2rpx solid #07c160;
+  border-radius: 8rpx;
+  padding: 4rpx 6rpx;
+  line-height: 1.4;
+}
+
+.unit-hint {
+  font-size: 22rpx;
+  margin-left: 4rpx;
+}
+
+.item-input {
+  height: 60rpx;
+  line-height: 60rpx;
+  background: #f7f7f7;
+  border-radius: 8rpx;
+  padding: 0 4rpx;
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.item-label {
+  flex: 0.9;
+  font-size: 26rpx;
+  color: #666;
+  text-align: center;
+}
+
+.labor-amount {
+  flex: 2;
+}
+
+.item-remark {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 2rpx dashed #eee;
+}
+
+.item-remark-label {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.item-remark-input {
+  flex: 1;
+  height: 60rpx;
+  line-height: 60rpx;
+  background: #f7f7f7;
+  border-radius: 8rpx;
+  padding: 0 16rpx;
+  font-size: 26rpx;
+}
+
+.qty-stepper {
+  flex: 1.1;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.qty-input {
+  flex: 1;
+  min-width: 0;
+  height: 60rpx;
+  line-height: 60rpx;
+  background: #f7f7f7;
+  border-radius: 8rpx;
+  padding: 0 4rpx;
+  font-size: 26rpx;
+  text-align: center;
+}
+
+.step-btn {
+  flex-shrink: 0;
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  color: #333;
+  font-size: 30rpx;
+  box-sizing: border-box;
+}
+
+.step-btn:active {
+  background: #e8f8ee;
+  border-color: #07c160;
+  color: #07c160;
+}
+
+.price { flex: 1; }
+
+.item-amount {
+  flex: 1.2;
+  text-align: right;
+  font-size: 28rpx;
+  color: #fa5151;
+  font-weight: 500;
+}
+
+.add-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.add-btn {
+  flex: 1;
+}
+
+.add-hint {
+  margin-top: 16rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  background: #fff;
+  padding: 20rpx 24rpx calc(20rpx + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+
+.footer-total {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.footer-amount {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #fa5151;
+}
+
+.footer-save {
+  flex: 1;
+}

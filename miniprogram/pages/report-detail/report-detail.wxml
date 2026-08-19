@@ -1,0 +1,62 @@
+<!--pages/report-detail/report-detail.wxml 报表详情-->
+<view class="page">
+  <view class="empty" wx:if="{{loading}}">加载中…</view>
+
+  <block wx:if="{{report}}">
+    <!-- 单据预览 -->
+    <view class="bill card">
+      <view class="bill-title">{{report.title || '报表'}}</view>
+      <view class="bill-meta">
+        <text class="bill-date">日期：{{report.date}}</text>
+      </view>
+      <view class="bill-customer">客户：{{report.customerName}}</view>
+      <view class="bill-location" wx:if="{{locText}}">位置：{{locText}}</view>
+
+      <view class="bill-table-head">
+        <text class="h-no">序号</text>
+        <text class="h-name">项目名称</text>
+        <text class="h-qty">数量</text>
+        <text class="h-unit">单位</text>
+        <text class="h-price">单价</text>
+        <text class="h-amount">金额</text>
+        <text class="h-note">备注</text>
+      </view>
+
+      <view class="bill-row" wx:for="{{report.items}}" wx:key="index">
+        <text class="c-no">{{index + 1}}</text>
+        <text class="c-name">{{item.type === 'goods' ? item.name : item.desc}}</text>
+        <text class="c-qty">{{item.type === 'goods' ? item.quantity : '—'}}</text>
+        <text class="c-unit">{{item.unit}}</text>
+        <text class="c-price">{{item.type === 'goods' ? item.priceText : '—'}}</text>
+        <text class="c-amount">{{item.amountText}}</text>
+        <text class="c-note">{{item.remark}}</text>
+      </view>
+
+      <view class="bill-total">
+        <text class="bill-total-label">总合计（元）</text>
+        <text class="bill-total-amount">¥{{totalText}}</text>
+      </view>
+
+      <view class="bill-remark" wx:if="{{report.remark}}">备注：{{report.remark}}</view>
+      <view class="bill-note" wx:if="{{report.serviceNote}}">{{report.serviceNote}}</view>
+    </view>
+
+    <view class="bill-footer">
+      <text>制单时间：{{createTimeText}}</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="ops">
+      <view class="ops-row">
+        <button class="btn-plain op-btn op-half" bindtap="goEdit">✏️ 编辑报表</button>
+        <button class="btn-plain op-btn op-half" bindtap="copyText">📋 复制文本</button>
+      </view>
+      <button class="btn-primary op-btn" bindtap="openNav" wx:if="{{report.location || report.address}}">🧭 导航到位置</button>
+      <button class="btn-primary op-btn" bindtap="saveAsImage">📷 存为图片</button>
+      <button class="btn-primary op-btn" bindtap="exportExcel">📄 导出 Excel</button>
+    </view>
+  </block>
+
+  <!-- 离屏画布（存图为图片用） -->
+  <canvas type="2d" id="billCanvas" class="bill-canvas"></canvas>
+</view>

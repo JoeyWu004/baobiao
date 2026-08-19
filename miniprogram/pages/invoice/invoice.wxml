@@ -1,0 +1,43 @@
+<!--pages/invoice/invoice.wxml 发票识别（多张，后台进行）-->
+<view class="page">
+  <!-- 后台任务状态横幅 -->
+  <view class="job-banner" wx:if="{{hasJob}}">
+    <block wx:if="{{jobStatus === 'running'}}">
+      <text class="job-text">🔍 后台识别中 {{jobDone}}/{{jobTotal}}…</text>
+      <button class="job-btn job-btn-danger" bindtap="onCancelJob">取消</button>
+    </block>
+    <block wx:elif="{{jobStatus === 'done' || jobStatus === 'partial'}}">
+      <text class="job-text">✅ 识别完成 {{jobSuccess}} 张{{jobFailed ? '，' + jobFailed + ' 张失败' : ''}}</text>
+      <button class="job-btn job-btn-primary" bindtap="goConfirm">去确认</button>
+    </block>
+    <block wx:elif="{{jobStatus === 'failed'}}">
+      <text class="job-text">⚠️ 全部 {{jobFailed}} 张识别失败，请换更清晰的发票重试</text>
+    </block>
+  </view>
+
+  <view class="images-grid">
+    <view class="img-item" wx:for="{{images}}" wx:key="index">
+      <image class="img-thumb" src="{{item.path}}" mode="aspectFill" />
+      <view class="img-del" data-index="{{index}}" bindtap="removeImage">×</view>
+    </view>
+    <view class="img-add" bindtap="chooseImage">
+      <view class="img-add-plus">＋</view>
+      <view class="img-add-text">添加发票</view>
+    </view>
+  </view>
+
+  <view class="tip" wx:if="{{!images.length && !hasJob}}">
+    可分多次添加发票/送货单，点「识别全部」后返回即可，识别在后台进行。
+  </view>
+
+  <view class="count-tip" wx:if="{{images.length > 0}}">
+    已添加 {{images.length}} 张发票
+  </view>
+
+  <view class="actions" wx:if="{{images.length > 0}}">
+    <button class="btn-plain clear-btn" bindtap="clearAll">清除全部</button>
+    <button class="btn-primary recognize-btn {{starting ? 'btn-disabled' : ''}}" bindtap="onRecognize">
+      {{starting ? '提交中…' : '识别全部'}}
+    </button>
+  </view>
+</view>

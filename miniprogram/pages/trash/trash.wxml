@@ -1,0 +1,69 @@
+<!--pages/trash/trash.wxml 回收站-->
+<view class="page">
+  <!-- 筛选：全部 / 报表 / 进货记录 / 商品 -->
+  <view class="filter-bar">
+    <view
+      class="filter-chip {{filter === 'all' ? 'chip-active' : ''}}"
+      data-filter="all"
+      bindtap="setFilter"
+    >全部<text class="chip-count">{{totalCount}}</text></view>
+    <view
+      class="filter-chip {{filter === 'report' ? 'chip-active' : ''}}"
+      data-filter="report"
+      bindtap="setFilter"
+    >报表<text class="chip-count">{{repCount}}</text></view>
+    <view
+      class="filter-chip {{filter === 'purchase' ? 'chip-active' : ''}}"
+      data-filter="purchase"
+      bindtap="setFilter"
+    >进货记录<text class="chip-count">{{purCount}}</text></view>
+    <view
+      class="filter-chip {{filter === 'product' ? 'chip-active' : ''}}"
+      data-filter="product"
+      bindtap="setFilter"
+    >商品<text class="chip-count">{{prodCount}}</text></view>
+  </view>
+
+  <view class="trash-toolbar" wx:if="{{!loading && displayed.length > 0}}">
+    <view class="trash-batch">
+      <button class="trash-restore" bindtap="onRestoreAll">
+        {{filter === 'report' ? '恢复报表' : filter === 'purchase' ? '恢复进货记录' : filter === 'product' ? '恢复商品' : '恢复全部'}}
+      </button>
+      <button class="trash-clear" bindtap="onClearAll">
+        {{filter === 'report' ? '清空报表' : filter === 'purchase' ? '清空进货记录' : filter === 'product' ? '清空商品' : '清空回收站'}}
+      </button>
+    </view>
+    <text class="trash-count">共 {{displayCount}} 条</text>
+  </view>
+
+  <view class="card trash-card" wx:for="{{displayed}}" wx:key="_id">
+    <view class="trash-main" data-id="{{item._id}}" data-type="{{item.type}}" bindtap="goDetail">
+      <view class="trash-top">
+        <view class="trash-name-col">
+          <text class="trash-type">{{item.type === 'purchase' ? '进货' : item.type === 'product' ? '商品' : '报表'}}</text>
+          <text class="trash-customer">{{item.name}}</text>
+        </view>
+        <text class="trash-amount" wx:if="{{item.type !== 'product'}}">¥{{item.totalText}}</text>
+        <text class="trash-qty" wx:else>库存 {{item.quantityText}}</text>
+      </view>
+      <view class="trash-meta">
+        <text>{{item.date}}</text>
+        <text wx:if="{{item.deleteText}}">删除于 {{item.deleteText}}</text>
+      </view>
+    </view>
+    <view class="trash-ops">
+      <button class="op-btn op-restore" data-id="{{item._id}}" data-type="{{item.type}}" bindtap="onRestore">恢复</button>
+      <button class="op-btn op-purge" data-id="{{item._id}}" data-type="{{item.type}}" data-name="{{item.name}}" bindtap="onPurge">彻底删除</button>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && displayed.length === 0}}">
+    <view wx:if="{{filter === 'all'}}">回收站是空的</view>
+    <view wx:elif="{{filter === 'report'}}">没有已删除的报表</view>
+    <view wx:elif="{{filter === 'purchase'}}">没有已删除的进货记录</view>
+    <view wx:else>没有已删除的商品</view>
+    <view>删除的报表 / 进货记录 / 商品会先到这里，可恢复</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+</view>

@@ -1,0 +1,69 @@
+{
+  "pages": [
+    "pages/report-list/report-list",
+    "pages/login/login",
+    "pages/goods/goods",
+    "pages/goods/edit",
+    "pages/report-edit/report-edit",
+    "pages/report-detail/report-detail",
+    "pages/price-history/price-history",
+    "pages/map/map",
+    "pages/profile/profile",
+    "pages/trash/trash",
+    "pages/category/category",
+    "pages/category-goods/category-goods",
+    "pages/invoice/invoice",
+    "pages/invoice-confirm/invoice-confirm",
+    "pages/quantity-history/quantity-history",
+    "pages/purchases/purchases",
+    "pages/purchase-detail/purchase-detail"
+  ],
+  "window": {
+    "backgroundColor": "#F6F6F6",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "报表",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/report-list/report-list",
+        "text": "报表",
+        "iconPath": "images/icons/home.png",
+        "selectedIconPath": "images/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/goods/goods",
+        "text": "进货",
+        "iconPath": "images/icons/goods.png",
+        "selectedIconPath": "images/icons/goods-active.png"
+      },
+      {
+        "pagePath": "pages/map/map",
+        "text": "地图",
+        "iconPath": "images/icons/business.png",
+        "selectedIconPath": "images/icons/business-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/icons/usercenter.png",
+        "selectedIconPath": "images/icons/usercenter-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在报表中记录当前位置"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation", "chooseLocation"],
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

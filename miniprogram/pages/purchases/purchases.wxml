@@ -1,0 +1,61 @@
+<!--pages/purchases/purchases.wxml 收支统计-->
+<view class="page">
+  <view class="card grand-card" wx:if="{{grand}}">
+    <view class="grand-title">累计经营</view>
+    <view class="grand-grid">
+      <view class="grand-item">
+        <view class="gi-label">收入</view>
+        <view class="gi-amount gi-income">¥{{grand.incomeText}}</view>
+      </view>
+      <view class="grand-item">
+        <view class="gi-label">进货</view>
+        <view class="gi-amount gi-cost">¥{{grand.costText}}</view>
+      </view>
+      <view class="grand-item">
+        <view class="gi-label">净利润</view>
+        <view class="gi-amount {{grand.profitClass}}">{{grand.profitText}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="month-block" wx:for="{{months}}" wx:key="month">
+    <view class="month-head">
+      <text class="month-name">{{item.month}}</text>
+    </view>
+    <view class="month-stats">
+      <view class="ms-item">
+        <text class="ms-label">收入</text>
+        <text class="ms-val gi-income">¥{{item.incomeText}}</text>
+      </view>
+      <view class="ms-item">
+        <text class="ms-label">进货</text>
+        <text class="ms-val gi-cost">¥{{item.costText}}</text>
+      </view>
+      <view class="ms-item">
+        <text class="ms-label">净利润</text>
+        <text class="ms-val {{item.profitClass}}">{{item.profitText}}</text>
+      </view>
+    </view>
+
+    <view class="card purchase-card" wx:for="{{item.list}}" wx:for-item="p" wx:key="_id" data-id="{{p._id}}" bindtap="goDetail" bindlongpress="onLongPress">
+      <view class="purchase-top">
+        <text class="purchase-supplier">{{p.supplier || '未填供应商'}}</text>
+        <text class="purchase-amount">¥{{p.totalText}}</text>
+      </view>
+      <view class="purchase-meta">
+        <text>{{p.date}}</text>
+        <text>{{p.itemCount}} 项</text>
+        <text class="purchase-arrow">›</text>
+      </view>
+      <view class="purchase-preview" wx:if="{{p.itemPreview}}">商品：{{p.itemPreview}}</view>
+    </view>
+    <view class="no-detail" wx:if="{{item.list.length === 0}}">本月暂无进货明细</view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && months.length === 0}}">
+    <view>还没有任何记录</view>
+    <view>导入发票入库、开报表后这里会按月统计收支</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+</view>

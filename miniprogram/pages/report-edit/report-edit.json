@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "新建报表",
+  "usingComponents": {
+    "goods-picker": "/components/goods-picker/index"
+  }
+}

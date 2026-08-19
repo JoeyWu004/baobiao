@@ -1,0 +1,53 @@
+/* components/recognition-float/recognition-float.wxss 识别完成弹窗 */
+.rf-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.rf-pop {
+  width: 88%;
+  max-width: 640rpx;
+  margin-bottom: 180rpx; /* 中下位置，避开底部导航 */
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.12);
+  animation: rf-in 0.2s ease-out;
+}
+
+@keyframes rf-in {
+  from { transform: translateY(40rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.rf-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.rf-sub {
+  font-size: 25rpx;
+  color: #888;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.rf-btn {
+  margin-top: 10rpx;
+  font-size: 28rpx;
+  color: #07c160;
+  font-weight: 600;
+}

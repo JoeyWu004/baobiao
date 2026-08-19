@@ -1,0 +1,44 @@
+<!--pages/map/map.wxml 地图-->
+<view class="map-page">
+  <!-- 状态筛选（带数量） -->
+  <view class="filter-bar">
+    <view
+      class="filter-chip {{statusFilter === item.key ? 'chip-active' : ''}}"
+      wx:for="{{statusTabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="setStatusFilter"
+    >{{item.text}}<text class="chip-count">{{item.count}}</text></view>
+  </view>
+
+  <!-- 地图区域 -->
+  <view class="map-wrap">
+    <map
+      class="map"
+      latitude="{{center.latitude}}"
+      longitude="{{center.longitude}}"
+      scale="{{scale}}"
+      markers="{{markers}}"
+      show-location
+      bindmarkertap="onMarkerTap"
+      bindtap="toggleCallout"
+    ></map>
+
+    <view class="map-empty" wx:if="{{!loading && markers.length === 0}}">
+      <view wx:if="{{hasAny}}">当前状态下还没有带位置的报表</view>
+      <block wx:else>
+        <view>还没有带位置的报表</view>
+        <view>开单时点「定位」即可在地图上显示</view>
+      </block>
+    </view>
+
+    <!-- 三个操作按钮（纯图标，用 view 保证正圆） -->
+    <view class="map-actions">
+      <view class="map-btn" bindtap="goPrev">↑</view>
+      <view class="map-btn" bindtap="goNext">↓</view>
+      <view class="map-btn map-btn-primary" bindtap="locateMe">📍</view>
+    </view>
+  </view>
+
+  <recognition-float />
+</view>

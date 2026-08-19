@@ -1,0 +1,50 @@
+<!--pages/category/category.wxml 分类管理-->
+<view class="page">
+  <view class="toolbar">
+    <button class="btn-plain add-root" bindtap="openAddRoot">＋ 新增一级分类</button>
+  </view>
+
+  <view class="cat-list" wx:if="{{nodes.length > 0}}">
+    <view
+      class="cat-row depth-{{item.depth > 3 ? 3 : item.depth}}"
+      wx:for="{{nodes}}"
+      wx:key="_id"
+      style="padding-left: {{item.indent}}rpx;"
+      data-id="{{item._id}}"
+      data-name="{{item.name}}"
+      data-level="{{item.level}}"
+      bindtap="onTapCategory"
+      bindlongpress="onLongPress"
+    >
+      <view class="cat-dot dot-{{item.depth > 3 ? 3 : item.depth}}"></view>
+      <text class="cat-name {{item.depth === 0 ? 'cat-root' : ''}}">{{item.name}}</text>
+    </view>
+    <!-- 交互说明 -->
+    <view class="cat-hint">点击查看分类商品 · 长按管理（子分类 / 重命名 / 删除）</view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && nodes.length === 0}}">
+    <view>还没有分类</view>
+    <view>点「新增一级分类」开始搭建，如：卧室、厨房</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+
+  <!-- 输入弹窗 -->
+  <view class="modal-mask" wx:if="{{showModal}}" catchtouchmove="noop">
+    <view class="modal-panel">
+      <view class="modal-title">{{modalTitle}}</view>
+      <input
+        class="modal-input"
+        placeholder="分类名称"
+        value="{{modalValue}}"
+        focus
+        bindinput="onModalInput"
+      />
+      <view class="modal-btns">
+        <button class="modal-btn modal-cancel" bindtap="closeModal">取消</button>
+        <button class="modal-btn modal-ok" bindtap="confirmModal">确定</button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,212 @@
+/* pages/goods/goods.wxss 商品库 */
+.page {
+  padding: 28rpx 28rpx 80rpx;
+}
+
+/* 搜索栏 */
+.search-bar {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx 28rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.search-input {
+  font-size: 28rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+}
+
+/* 工具栏：数量单独一行 */
+.toolbar {
+  margin-bottom: 20rpx;
+}
+
+.toolbar-count {
+  font-size: 26rpx;
+  color: #999;
+  line-height: 1.4;
+  display: block;
+}
+
+.toolbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20rpx;
+  align-items: center;
+  margin-bottom: 28rpx;
+}
+
+.tool-btn {
+  padding: 18rpx 32rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #fff;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 14rpx;
+  line-height: 1.4;
+}
+
+/* 发票按钮角标：按钮自身相对定位 + overflow 可见，角标绝对定位压住右上角并伸出按钮边界 */
+/* 让按钮保持 flex 直系子项（与「分类」同宽），不做内联块/收缩那套 */
+.rec-btn {
+  position: relative;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.rec-badge {
+  position: absolute;
+  top: -12rpx;
+  right: -10rpx;
+  min-width: 36rpx;
+  height: 34rpx;
+  line-height: 34rpx;
+  padding: 0 8rpx;
+  border-radius: 18rpx;
+  background: #fa5151;
+  color: #fff;
+  font-size: 20rpx;
+  text-align: center;
+  box-sizing: border-box;
+  border: 3rpx solid #fff; /* 白边让它从按钮上"浮"出来 */
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
+}
+
+.rec-dot {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #fa5151;
+  border: 3rpx solid #fff;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.15);
+}
+
+.add-btn {
+  padding: 18rpx 36rpx;
+  font-size: 28rpx;
+  color: #fff;
+  background: #07c160;
+  border-radius: 14rpx;
+  line-height: 1.4;
+}
+
+.add-btn:active {
+  opacity: 0.85;
+}
+
+/* 商品列表 */
+.goods-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.goods-card {
+  padding: 30rpx;
+  border-radius: 20rpx;
+}
+
+.goods-main {
+  padding-bottom: 20rpx;
+}
+
+.goods-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #222;
+  display: flex;
+  align-items: baseline;
+  line-height: 1.4;
+  margin-bottom: 16rpx;
+}
+
+.goods-unit {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 14rpx;
+  font-weight: 400;
+}
+
+.goods-multi {
+  font-size: 20rpx;
+  color: #07c160;
+  background: #eafaf0;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 12rpx;
+  font-weight: 400;
+}
+
+.goods-price {
+  display: flex;
+  gap: 32rpx;
+  font-size: 28rpx;
+  margin-bottom: 16rpx;
+}
+
+.sell {
+  color: #fa5151;
+  font-weight: 600;
+}
+
+.cost {
+  color: #999;
+}
+
+.goods-supplier {
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+.goods-category {
+  margin-top: 10rpx;
+  font-size: 25rpx;
+  color: #576b95;
+  line-height: 1.5;
+}
+
+.goods-qty {
+  display: inline-block;
+  margin-top: 12rpx;
+  font-size: 25rpx;
+  color: #07c160;
+  background: #eafaf0;
+  border-radius: 8rpx;
+  padding: 4rpx 16rpx;
+}
+
+.goods-ops {
+  display: flex;
+  gap: 20rpx;
+  border-top: 2rpx solid #f0f0f0;
+  padding-top: 22rpx;
+}
+
+.op-btn {
+  font-size: 27rpx;
+  color: #576b95;
+  padding: 16rpx 36rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  line-height: 1.4;
+}
+
+.op-del {
+  color: #fa5151;
+}
+
+/* 空状态 */
+.empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 140rpx 0;
+  line-height: 2;
+}

@@ -1,0 +1,61 @@
+<!--components/goods-picker/index.wxml-->
+<view wx:if="{{show}}" class="picker-mask" bindtap="noop" catchtouchmove="noop">
+  <view class="picker-panel">
+    <view class="picker-header">
+      <text class="picker-title">选择商品</text>
+      <view class="picker-close" bindtap="onConfirm">
+        <text>{{selectedCount > 0 ? '完成 (' + selectedCount + ')' : '完成'}}</text>
+      </view>
+    </view>
+
+    <view class="picker-search">
+      <input
+        class="picker-input"
+        placeholder="搜索商品名称 / 供应商 / 分类"
+        value="{{keyword}}"
+        bindinput="onSearch"
+      />
+    </view>
+
+    <scroll-view class="picker-cats" scroll-x wx:if="{{categories.length > 0}}">
+      <view
+        class="picker-cat {{activeCat === item ? 'cat-active' : ''}}"
+        wx:for="{{categories}}"
+        wx:key="*this"
+        data-cat="{{item}}"
+        bindtap="onCatTap"
+      >{{item}}</view>
+    </scroll-view>
+
+    <scroll-view class="picker-list" scroll-y>
+      <view
+        class="picker-item {{item._selected ? 'picker-item-selected' : ''}}"
+        wx:for="{{filtered}}"
+        wx:key="_id"
+        data-index="{{index}}"
+        bindtap="onToggle"
+      >
+        <view class="picker-item-check {{item._selected ? 'checked' : ''}}">
+          <text wx:if="{{item._selected}}">✓</text>
+        </view>
+        <view class="picker-item-main">
+          <view class="picker-item-name">
+            {{item.name}}
+            <text class="picker-item-unit">{{item.unit}}</text>
+          </view>
+          <view class="picker-item-supplier" wx:if="{{item.supplier}}">
+            供应商：{{item.supplier}}
+          </view>
+        </view>
+        <view class="picker-item-right">
+          <view class="picker-item-price">¥{{item.sellPriceText}}</view>
+          <view class="picker-item-cost" wx:if="{{item.costPrice > 0}}">进 ¥{{item.costPriceText}}</view>
+        </view>
+      </view>
+
+      <view class="picker-empty" wx:if="{{!loading && filtered.length === 0}}">
+        没有匹配的商品，可先去「商品库」新增
+      </view>
+    </scroll-view>
+  </view>
+</view>

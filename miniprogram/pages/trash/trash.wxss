@@ -1,0 +1,175 @@
+/* pages/trash/trash.wxss 回收站 */
+.page {
+  padding: 24rpx 24rpx 60rpx;
+}
+
+/* 筛选：全部 / 报表 / 进货记录 */
+.filter-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 26rpx;
+  background: #fff;
+  border-radius: 40rpx;
+  font-size: 26rpx;
+  color: #666;
+  border: 2rpx solid #eee;
+}
+
+.chip-count {
+  font-size: 22rpx;
+  color: #999;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 20rpx;
+  padding: 2rpx 12rpx;
+}
+
+.chip-active {
+  background: #07c160;
+  color: #fff;
+  border-color: #07c160;
+}
+
+.chip-active .chip-count {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* 工具栏：恢复/清空按钮在上，共 x 条在按钮下方隔开与卡片按钮的区别 */
+.trash-toolbar {
+  margin-bottom: 24rpx;
+}
+
+.trash-batch {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.trash-count {
+  font-size: 26rpx;
+  color: #999;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.trash-restore {
+  font-size: 26rpx;
+  color: #07c160;
+  background: #fff;
+  border: 2rpx solid #bdebd2;
+  border-radius: 14rpx;
+  padding: 18rpx 32rpx;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.trash-restore:active {
+  opacity: 0.85;
+}
+
+.trash-clear {
+  font-size: 26rpx;
+  color: #fa5151;
+  background: #fff;
+  border: 2rpx solid #f0d0d0;
+  border-radius: 14rpx;
+  padding: 18rpx 32rpx;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.trash-clear:active {
+  opacity: 0.85;
+}
+
+.trash-card {
+  margin-bottom: 20rpx;
+}
+
+.trash-main {
+  padding-bottom: 16rpx;
+}
+
+.trash-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.trash-name-col {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  min-width: 0;
+}
+
+.trash-type {
+  font-size: 20rpx;
+  color: #576b95;
+  background: #eceff8;
+  border-radius: 6rpx;
+  padding: 2rpx 10rpx;
+  flex-shrink: 0;
+}
+
+.trash-customer {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trash-amount {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #999;
+}
+
+.trash-qty {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #07c160;
+}
+
+.trash-meta {
+  display: flex;
+  gap: 24rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.trash-ops {
+  display: flex;
+  gap: 20rpx;
+  border-top: 2rpx solid #f0f0f0;
+  padding-top: 16rpx;
+}
+
+.op-btn {
+  flex: 1;
+  font-size: 28rpx;
+  border-radius: 10rpx;
+  padding: 16rpx 0;
+  text-align: center;
+}
+
+.op-restore {
+  border: 2rpx solid #07c160;
+  color: #07c160;
+}
+
+.op-purge {
+  border: 2rpx solid #e0e0e0;
+  color: #fa5151;
+}

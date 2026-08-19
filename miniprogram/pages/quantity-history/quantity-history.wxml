@@ -1,0 +1,37 @@
+<!--pages/quantity-history/quantity-history.wxml 数量变动记录-->
+<view class="page">
+  <view class="filter-bar">
+    <view class="filter-chip {{filter === 'all' ? 'chip-active' : ''}}" data-filter="all" bindtap="setFilter">全部</view>
+    <view class="filter-chip {{filter === 'manual' ? 'chip-active' : ''}}" data-filter="manual" bindtap="setFilter">手动</view>
+    <view class="filter-chip {{filter === 'invoice' ? 'chip-active' : ''}}" data-filter="invoice" bindtap="setFilter">发票</view>
+    <view class="filter-chip {{filter === 'report' ? 'chip-active' : ''}}" data-filter="report" bindtap="setFilter">报表</view>
+  </view>
+
+  <view
+    class="card hist-card"
+    wx:for="{{list}}"
+    wx:key="_id"
+    wx:if="{{filter === 'all' || item.source === filter}}"
+    data-id="{{item._id}}"
+    bindlongpress="onDeleteRecord"
+  >
+    <view class="hist-top">
+      <text class="hist-time">{{item.timeText}}</text>
+      <view class="hist-tags">
+        <text class="hist-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
+        <text class="hist-source">{{item.sourceText}}</text>
+      </view>
+    </view>
+    <view class="hist-change">
+      <text class="hist-delta {{item.deltaClass}}">{{item.deltaText}} {{item.unit}}</text>
+      <text class="hist-arrow">→</text>
+      <text class="hist-after">库存 {{item.afterText}} {{item.unit}}</text>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && list.length === 0}}">暂无数量变动记录</view>
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+
+  <!-- 交互说明 -->
+  <view class="hist-hint" wx:if="{{list.length > 0}}">长按记录可删除</view>
+</view>

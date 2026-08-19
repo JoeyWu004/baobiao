@@ -1,0 +1,168 @@
+/* pages/purchases/purchases.wxss 收支统计 */
+.page {
+  padding: 28rpx 28rpx 80rpx;
+}
+
+/* 累计经营总览 */
+.grand-card {
+  margin-bottom: 32rpx;
+  padding: 36rpx 16rpx;
+}
+
+.grand-title {
+  font-size: 26rpx;
+  color: #999;
+  text-align: center;
+}
+
+.grand-grid {
+  display: flex;
+  margin-top: 24rpx;
+}
+
+.grand-item {
+  flex: 1;
+  text-align: center;
+}
+
+.grand-item + .grand-item {
+  border-left: 1rpx solid #f0f0f0;
+}
+
+.gi-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.gi-amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  margin-top: 8rpx;
+}
+
+.gi-income {
+  color: #07c160;
+}
+
+.gi-cost {
+  color: #fa5151;
+}
+
+/* 净利润正负色（收入/进货共用 .profit/.loss） */
+.profit {
+  color: #07c160;
+}
+
+.loss {
+  color: #fa5151;
+}
+
+/* 每月汇总 */
+.month-block {
+  margin-bottom: 32rpx;
+}
+
+.month-head {
+  display: flex;
+  align-items: center;
+  padding: 0 8rpx 12rpx;
+}
+
+.month-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.month-stats {
+  display: flex;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx 0;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.ms-item {
+  flex: 1;
+  text-align: center;
+}
+
+.ms-item + .ms-item {
+  border-left: 1rpx solid #f0f0f0;
+}
+
+.ms-label {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+}
+
+.ms-val {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-top: 4rpx;
+}
+
+.no-detail {
+  text-align: center;
+  font-size: 24rpx;
+  color: #bbb;
+  padding: 16rpx 0;
+}
+
+/* 进货明细列表 */
+.purchase-card {
+  margin-bottom: 16rpx;
+}
+
+.purchase-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.purchase-supplier {
+  font-size: 28rpx;
+  color: #222;
+  font-weight: 500;
+}
+
+.purchase-amount {
+  font-size: 28rpx;
+  color: #fa5151;
+  font-weight: 600;
+}
+
+.purchase-meta {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.purchase-arrow {
+  margin-left: auto;
+  font-size: 36rpx;
+  color: #ccc;
+}
+
+.purchase-preview {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #576b95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 140rpx 0;
+  line-height: 2;
+}

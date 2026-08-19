@@ -1,0 +1,141 @@
+/* pages/report-detail/report-detail.wxss 报表详情 */
+.page {
+  padding: 24rpx 24rpx 60rpx;
+}
+
+.bill {
+  padding: 36rpx 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.bill-title {
+  text-align: center;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 28rpx;
+}
+
+.bill-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.bill-customer {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.bill-location {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.bill-table-head {
+  display: flex;
+  background: #f5f5f5;
+  padding: 16rpx 0;
+  font-size: 24rpx;
+  color: #666;
+  border: 2rpx solid #e0e0e0;
+}
+
+.h-no { flex: 0.6; text-align: center; }
+.h-name { flex: 2.2; padding-left: 12rpx; }
+.h-qty { flex: 0.8; text-align: center; }
+.h-unit { flex: 0.8; text-align: center; }
+.h-price { flex: 1; text-align: right; }
+.h-amount { flex: 1.2; text-align: right; }
+.h-note { flex: 0.8; text-align: center; padding-right: 12rpx; }
+
+.bill-row {
+  display: flex;
+  padding: 18rpx 0;
+  font-size: 26rpx;
+  color: #333;
+  border-left: 2rpx solid #e0e0e0;
+  border-right: 2rpx solid #e0e0e0;
+  border-bottom: 2rpx solid #e0e0e0;
+}
+
+.c-no { flex: 0.6; text-align: center; color: #666; font-size: 24rpx; }
+.c-name { flex: 2.2; padding-left: 12rpx; word-break: break-all; }
+.c-qty { flex: 0.8; text-align: center; }
+.c-unit { flex: 0.8; text-align: center; color: #666; }
+.c-price { flex: 1; text-align: right; }
+.c-amount { flex: 1.2; text-align: right; color: #fa5151; }
+.c-note { flex: 0.8; text-align: center; padding-right: 12rpx; }
+
+.bill-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f5f7fa;
+  padding: 20rpx 16rpx;
+  border: 2rpx solid #e0e0e0;
+  margin-top: 4rpx;
+}
+
+.bill-total-label {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.bill-total-amount {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #fa5151;
+}
+
+.bill-remark {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.bill-note {
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.6;
+}
+
+.bill-footer {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 32rpx;
+}
+
+.ops {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.ops-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.op-btn {
+  width: 100%;
+}
+
+.op-half {
+  flex: 1;
+}
+
+/* 离屏画布：不可见但要参与布局以取得节点 */
+.bill-canvas {
+  position: fixed;
+  left: -2000rpx;
+  top: 0;
+  width: 750rpx;
+  height: 2400rpx;
+}

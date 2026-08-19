@@ -1,0 +1,32 @@
+<!--pages/login/login.wxml 微信登录-->
+<view class="login-page">
+  <view class="logo-area">
+    <view class="logo">报</view>
+    <view class="app-name">报表助手</view>
+  </view>
+
+  <!-- 首次登录引导：可选设置头像和昵称（与微信一致） -->
+  <view class="profile-card">
+    <view class="profile-label">头像（可选）</view>
+    <view class="avatar-wrap">
+      <image wx:if="{{avatarUrl}}" class="avatar-wrap-img" src="{{avatarUrl}}" mode="aspectFit" />
+      <view wx:else class="avatar-wrap-empty">＋</view>
+      <button class="avatar-picker-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">选头像</button>
+    </view>
+    <view class="profile-label">昵称（可选）</view>
+    <input
+      class="nick-input"
+      type="nickname"
+      placeholder="聚焦后可点选微信昵称"
+      value="{{nickname}}"
+      bindinput="onNickInput"
+    />
+    <view class="profile-tip">留空则显示「微信用户」，登录后可在「我的」页修改</view>
+  </view>
+
+  <button class="login-btn {{logging ? 'btn-disabled' : ''}}" bindtap="onLogin">
+    {{logging ? '登录中…' : '微信一键登录'}}
+  </button>
+
+  <view class="privacy-tip">登录后按微信账号隔离各自数据</view>
+</view>

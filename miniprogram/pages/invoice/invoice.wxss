@@ -1,0 +1,130 @@
+/* pages/invoice/invoice.wxss 发票识别 */
+.page {
+  padding: 28rpx 28rpx 80rpx;
+}
+
+/* 后台任务状态横幅 */
+.job-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.job-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.job-btn {
+  flex-shrink: 0;
+  font-size: 25rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 12rpx;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.job-btn-primary {
+  color: #fff;
+  background: #07c160;
+}
+
+.job-btn-danger {
+  color: #fa5151;
+  border: 2rpx solid #f0d0d0;
+  background: #fff;
+}
+
+.images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.img-item {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+}
+
+.img-thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+}
+
+.img-del {
+  position: absolute;
+  top: -14rpx;
+  right: -14rpx;
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 30rpx;
+  text-align: center;
+  line-height: 44rpx;
+}
+
+.img-add {
+  width: 200rpx;
+  height: 200rpx;
+  border: 4rpx dashed #ccc;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-add-plus {
+  font-size: 56rpx;
+  color: #ccc;
+}
+
+.img-add-text {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.tip {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 40rpx;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* 已选发票数量提示（图片下方、操作按钮上方） */
+.count-tip {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 28rpx;
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+
+.clear-btn {
+  width: 220rpx;
+  padding: 22rpx 0;
+  font-size: 30rpx;
+}
+
+.recognize-btn {
+  flex: 1;
+}

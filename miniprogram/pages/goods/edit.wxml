@@ -1,0 +1,71 @@
+<!--pages/goods/edit.wxml 商品编辑（多单位）-->
+<view class="page">
+  <view class="card form-card">
+    <view class="form-item">
+      <text class="form-label required">商品名称</text>
+      <input class="input-box" placeholder="必填" value="{{form.name}}" data-field="name" bindinput="onFormInput" />
+    </view>
+  </view>
+
+  <!-- 单位与价格（可多个单位） -->
+  <view class="card units-card">
+    <view class="units-head">
+      <text class="units-title">单位与价格</text>
+      <view class="units-add" bindtap="addUnit">＋ 添加单位</view>
+    </view>
+    <view class="unit-row" wx:for="{{units}}" wx:key="index">
+      <view class="unit-line">
+        <input class="unit-input unit-name" placeholder="单位，如 米/桶" value="{{item.name}}" data-field="name" data-index="{{index}}" bindinput="onUnitInput" />
+        <view class="unit-del" data-index="{{index}}" bindtap="removeUnit">删</view>
+      </view>
+      <view class="unit-line">
+        <text class="unit-label">进价</text>
+        <input class="unit-input" type="digit" placeholder="0" value="{{item.costPrice}}" data-field="costPrice" data-index="{{index}}" bindinput="onUnitInput" />
+        <text class="unit-label">售价</text>
+        <input class="unit-input" type="digit" placeholder="0" value="{{item.sellPrice}}" data-field="sellPrice" data-index="{{index}}" bindinput="onUnitInput" />
+      </view>
+      <view class="unit-line">
+        <text class="unit-label">库存</text>
+        <view class="qty-stepper">
+          <view class="qty-btn qty-btn-minus" data-index="{{index}}" data-delta="-1" bindtap="onQtyStep">－</view>
+          <input class="unit-input qty-input" type="digit" placeholder="0" value="{{item.quantity}}" data-field="quantity" data-index="{{index}}" bindinput="onUnitInput" />
+          <view class="qty-btn qty-btn-plus" data-index="{{index}}" data-delta="1" bindtap="onQtyStep">＋</view>
+        </view>
+      </view>
+    </view>
+    <view class="units-tip">第一个单位作为默认单位；开单时可切换到其他单位。</view>
+  </view>
+
+  <view class="card form-card">
+    <view class="form-item">
+      <text class="form-label">供应商</text>
+      <input class="input-box" placeholder="选填" value="{{form.supplier}}" data-field="supplier" bindinput="onFormInput" />
+    </view>
+    <view class="form-item" bindtap="openCategoryPicker">
+      <text class="form-label">分类</text>
+      <view class="input-box category-value {{categoryText ? '' : 'placeholder'}}">
+        {{categoryText || '点击选择'}}
+      </view>
+      <text class="category-arrow">›</text>
+    </view>
+    <view class="form-item">
+      <text class="form-label">备注</text>
+      <input class="input-box" placeholder="选填" value="{{form.remark}}" data-field="remark" bindinput="onFormInput" />
+    </view>
+  </view>
+
+  <view class="tip" wx:if="{{mode === 'edit'}}">
+    提示：修改价格/数量会自动记录到该商品的价格历史与数量记录中。
+  </view>
+
+  <button class="btn-primary save-btn {{saving ? 'btn-disabled' : ''}}" bindtap="onSave">
+    {{saving ? '保存中…' : '保存'}}
+  </button>
+
+  <!-- 分类选择弹层 -->
+  <category-picker
+    show="{{showCategoryPicker}}"
+    bindselect="onCategorySelect"
+    bindclose="closeCategoryPicker"
+  />
+</view>

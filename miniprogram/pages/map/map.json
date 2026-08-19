@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "地图",
+  "usingComponents": {
+    "recognition-float": "/components/recognition-float/recognition-float"
+  }
+}

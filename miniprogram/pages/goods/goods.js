@@ -113,6 +113,11 @@ Page({
     });
   },
 
+  goSource(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({ url: `/pages/goods-source/goods-source?id=${id}` });
+  },
+
   goEdit(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: "/pages/goods/edit?id=" + id });

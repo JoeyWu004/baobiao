@@ -193,7 +193,7 @@ Page({
     try {
       if (this.data.mode === "add") {
         const addRes = await db().collection("products").add({
-          data: { ...data, createTime: db().serverDate() },
+          data: { ...data, createTime: db().serverDate(), source: { type: "manual" } },
         });
         await this.writeInitialQty(addRes._id, f.name.trim(), parsed);
         await this.writeInitialPrice(addRes._id, f.name.trim(), parsed);

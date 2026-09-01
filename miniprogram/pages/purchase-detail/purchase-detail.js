@@ -165,6 +165,12 @@ Page({
               supplier,
               categoryPath: [],
               remark: "",
+              source: {
+                type: "purchase",
+                purchaseId: this.purchaseId,
+                date: (this.data.purchase && this.data.purchase.date) || "",
+                supplier,
+              },
               createTime: db().serverDate(),
               updateTime: db().serverDate(),
             },

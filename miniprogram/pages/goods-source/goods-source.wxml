@@ -1,0 +1,18 @@
+<!--pages/goods-source/goods-source.wxml 商品来源-->
+<view class="page">
+  <view class="card head-card" wx:if="{{!loading}}">
+    <view class="head-name">{{name}}</view>
+    <view class="head-unit" wx:if="{{unit}}">{{unit}}</view>
+  </view>
+
+  <view class="card source-card" wx:if="{{!loading}}">
+    <view class="source-title">来源</view>
+    <view class="source-label {{sourceType}}">{{sourceLabel}}</view>
+    <view class="source-line" wx:if="{{sourceSupplier}}">供应商：{{sourceSupplier}}</view>
+    <view class="source-line" wx:if="{{sourceDate}}">日期：{{sourceDate}}</view>
+    <view class="source-hint" wx:if="{{sourceType === 'unknown'}}">该商品创建较早，未记录来源</view>
+    <view class="source-link" wx:if="{{purchaseId}}" bindtap="goPurchase">查看进货记录 ›</view>
+  </view>
+
+  <view class="empty" wx:if="{{loading}}">加载中…</view>
+</view>

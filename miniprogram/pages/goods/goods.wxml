@@ -24,7 +24,7 @@
 
   <view class="goods-list" wx:if="{{filtered.length > 0}}">
     <view class="card goods-card" wx:for="{{filtered}}" wx:key="_id">
-      <view class="goods-main" bindtap="goHistory" data-id="{{item._id}}" data-name="{{item.name}}">
+      <view class="goods-main" bindtap="goSource" data-id="{{item._id}}" data-name="{{item.name}}">
         <view class="goods-name">
           {{item.name}}
           <text class="goods-unit">{{item.unit}}</text>
@@ -40,6 +40,7 @@
       </view>
       <view class="goods-ops">
         <button class="op-btn" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="goQtyHistory">数量</button>
+        <button class="op-btn" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="goHistory">价格</button>
         <button class="op-btn" data-id="{{item._id}}" bindtap="goEdit">编辑</button>
         <button class="op-btn op-del" data-id="{{item._id}}" data-name="{{item.name}}" bindtap="onDelete">删除</button>
       </view>

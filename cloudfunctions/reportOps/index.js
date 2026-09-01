@@ -501,6 +501,7 @@ async function ensureProductForRestore(t, OPENID, item) {
       supplier: "",
       categoryPath: [],
       remark: "",
+      source: { type: "restore" },
       createTime: db.serverDate(),
       updateTime: db.serverDate(),
     },

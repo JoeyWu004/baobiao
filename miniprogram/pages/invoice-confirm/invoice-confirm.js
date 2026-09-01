@@ -227,6 +227,31 @@ Page({
     const rows = this.validRows(inv.items);
     if (!rows.length) return;
     const supplier = (inv.supplier || "").trim();
+    const date = inv.date || fmtDate(new Date());
+
+    // 先建进货记录，拿到 purchaseId，供新建商品记录来源
+    const items = rows.map((it) => ({
+      name: it.name.trim(),
+      unit: it.unit || "个",
+      quantity: Number(it.quantity) || 0,
+      price: roundMoney(Number(it.price) || 0),
+      amount: roundMoney(Number(it.price || 0) * Number(it.quantity || 0)),
+    }));
+    const totalAmount = roundMoney(items.reduce((s, it) => s + it.amount, 0));
+    const purchaseRes = await db().collection("purchases").add({
+      data: {
+        date,
+        supplier,
+        totalAmount,
+        itemCount: items.length,
+        items,
+        invoiceCount: 1,
+        fileID: inv.fileID || "",
+        createTime: db().serverDate(),
+      },
+    });
+    const purchaseId = purchaseRes._id;
+
     for (const it of rows) {
       const name = it.name.trim();
       const unitName = (it.unit || "").trim() || "个";
@@ -295,6 +320,7 @@ Page({
           data: {
             name, units: [unit], unit: unitName, costPrice, sellPrice: 0,
             quantity: qtyAdd, supplier, categoryPath: [], remark: "",
+            source: { type: "invoice", purchaseId, date, supplier },
             createTime: db().serverDate(), updateTime: db().serverDate(),
           },
         });
@@ -320,27 +346,6 @@ Page({
       }
     }
 
-    // 进货记录（每张发票一条，含明细）
-    const items = rows.map((it) => ({
-      name: it.name.trim(),
-      unit: it.unit || "个",
-      quantity: Number(it.quantity) || 0,
-      price: roundMoney(Number(it.price) || 0),
-      amount: roundMoney(Number(it.price || 0) * Number(it.quantity || 0)),
-    }));
-    const totalAmount = roundMoney(items.reduce((s, it) => s + it.amount, 0));
-    await db().collection("purchases").add({
-      data: {
-        date: inv.date || fmtDate(new Date()),
-        supplier,
-        totalAmount,
-        itemCount: items.length,
-        items,
-        invoiceCount: 1,
-        fileID: inv.fileID || "",
-        createTime: db().serverDate(),
-      },
-    });
   },
 
   // 入库并切下一张：只处理当前这张，存完从列表移除并跳到下一张

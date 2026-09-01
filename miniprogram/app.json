@@ -7,6 +7,7 @@
     "pages/report-edit/report-edit",
     "pages/report-detail/report-detail",
     "pages/price-history/price-history",
+    "pages/goods-source/goods-source",
     "pages/map/map",
     "pages/profile/profile",
     "pages/trash/trash",

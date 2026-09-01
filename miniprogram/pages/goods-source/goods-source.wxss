@@ -1,0 +1,77 @@
+/* pages/goods-source/goods-source.wxss 商品来源 */
+.page {
+  padding: 28rpx 28rpx 60rpx;
+}
+
+.head-card {
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.head-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #222;
+}
+
+.head-unit {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.source-card {
+  padding: 32rpx;
+}
+
+.source-title {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 16rpx;
+}
+
+.source-label {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 12rpx;
+}
+
+.source-label.invoice {
+  color: #07c160;
+}
+
+.source-label.purchase {
+  color: #576b95;
+}
+
+.source-label.unknown {
+  color: #bbb;
+}
+
+.source-label.restore {
+  color: #576b95;
+}
+
+.source-line {
+  font-size: 27rpx;
+  color: #666;
+  line-height: 1.7;
+}
+
+.source-hint {
+  margin-top: 12rpx;
+  font-size: 25rpx;
+  color: #bbb;
+}
+
+.source-link {
+  margin-top: 24rpx;
+  display: inline-block;
+  font-size: 27rpx;
+  color: #07c160;
+  padding: 14rpx 28rpx;
+  border: 2rpx solid #07c160;
+  border-radius: 12rpx;
+}

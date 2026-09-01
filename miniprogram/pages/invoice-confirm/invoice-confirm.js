@@ -92,13 +92,9 @@ Page({
   onItemInput(e) {
     const field = e.currentTarget.dataset.field; // name | unit | quantity | price
     const index = Number(e.currentTarget.dataset.index);
-    let value = e.detail.value;
-    if (field === "quantity" || field === "price") {
-      value = value === "" ? 0 : Number(value);
-      if (isNaN(value)) value = 0;
-    }
+    // 数量/单价保留原始字符串：立即 Number() 会吞掉输入中的小数点，导致无法输入小数
     this.setData({
-      [`invoices[${this.ci()}].items[${index}].${field}`]: value,
+      [`invoices[${this.ci()}].items[${index}].${field}`]: e.detail.value,
     });
     this.recalc();
   },

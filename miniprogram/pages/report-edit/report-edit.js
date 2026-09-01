@@ -304,8 +304,7 @@ Page({
 
     let value = e.detail.value;
     if (field === "price" || field === "quantity" || field === "amount") {
-      value = value === "" ? 0 : Number(value);
-      if (isNaN(value)) value = 0;
+      // 保留原始字符串：若立即 Number() 转换，输入"12."时小数点会被吞掉，导致无法输入小数
       item[field] = value;
       if (field === "price" && item.type === "goods") {
         item.overridden =

@@ -86,12 +86,8 @@ Page({
     const items = this.data.items.slice();
     const item = { ...items[index] };
     if (!item) return;
-    let value = e.detail.value;
-    if (field === "quantity" || field === "price") {
-      value = value === "" ? 0 : Number(value);
-      if (isNaN(value)) value = 0;
-    }
-    item[field] = value;
+    // 数量/单价保留原始字符串：立即 Number() 会吞掉输入中的小数点，导致无法输入小数
+    item[field] = e.detail.value;
     items[index] = item;
     this.setData({ items });
     this.recalc();

@@ -21,6 +21,8 @@ exports.main = async (event) => {
       return updateKimiKey(OPENID, event);
     case "updateKimiModel":
       return updateKimiModel(OPENID, event);
+    case "updateDeepSeekKey":
+      return updateDeepSeekKey(OPENID, event);
     default:
       return { success: false, msg: "未知操作：" + action };
   }
@@ -139,8 +141,9 @@ async function updateKimiKey(OPENID, event) {
   }
 }
 
-// 更新识别模型（账户绑定，发票识别用；与 kimiApiKey 独立设置）
-const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3"];
+// 更新识别模型（账户绑定，发票识别用；与 API Key 独立设置）
+// kimiModel 存当前识别模型，可为 Kimi 或 DeepSeek（前缀区分服务商）
+const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3", "deepseek-v4-flash-vision-exp"];
 
 async function updateKimiModel(OPENID, event) {
   const model = String(event.kimiModel || "").trim();
@@ -163,3 +166,24 @@ async function updateKimiModel(OPENID, event) {
     return { success: false, msg: e.errMsg || e.message };
   }
 }
+
+// 更新 DeepSeek API Key（账户绑定，用于 DeepSeek 发票识别）
+async function updateDeepSeekKey(OPENID, event) {
+  const { deepseekApiKey } = event;
+  try {
+    const found = await db.collection("users").where({ openid: OPENID }).get();
+    if (found.data.length === 0) {
+      return { success: false, msg: "用户不存在，请先登录" };
+    }
+    await db
+      .collection("users")
+      .doc(found.data[0]._id)
+      .update({ data: { deepseekApiKey: (deepseekApiKey || "").trim() } });
+    const doc = await db.collection("users").doc(found.data[0]._id).get();
+    return { success: true, user: doc.data };
+  } catch (e) {
+    console.error("updateDeepSeekKey error", e);
+    return { success: false, msg: e.errMsg || e.message };
+  }
+}
+

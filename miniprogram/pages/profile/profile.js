@@ -12,6 +12,10 @@ const KIMI_MODELS = [
     value: "kimi-k3",
     label: "Kimi K3",
   },
+  {
+    value: "deepseek-v4-flash-vision-exp",
+    label: "DeepSeek V4 Flash",
+  },
 ];
 
 Page({
@@ -24,17 +28,25 @@ Page({
     editAvatarUrl: "",
     editAvatarTemp: "",
     serviceNote: "",
-    // 识别设置（Kimi API Key + 识别模型，二合一）
+    // 识别设置（识别模型 + 各服务商 Key / 地址，二合一）
     kimiApiKey: "",
     kimiMasked: "",
     kimiModel: "",
     kimiModelLabel: "",
+    // 当前所选模型的 key 遮蔽串（识别设置入口副标题）
+    recMasked: "",
+    // DeepSeek：只存 Key（地址固定用官方默认，可被 invoiceOCR 环境变量覆盖）
+    deepseekApiKey: "",
+    deepseekMasked: "",
+    // 当前是否为 DeepSeek 模型（决定弹窗显示哪些输入框）
+    isDeepSeekModel: false,
     // 服务说明编辑弹窗
     showNoteModal: false,
     noteValue: "",
     // 识别设置弹窗（一个弹窗内包含模型选择 + Key 输入）
     showRecModal: false,
     kimiValue: "",
+    deepseekValue: "",
     saving: false,
   },
 
@@ -62,12 +74,24 @@ Page({
         if (res.result && res.result.success && res.result.user) {
           const u = res.result.user;
           const model = u.kimiModel || KIMI_MODELS[0].value;
+          const ds = this.isDeepSeek(model);
+          const keyMasked = ds
+            ? u.deepseekApiKey
+              ? "••••" + u.deepseekApiKey.slice(-4)
+              : ""
+            : u.kimiApiKey
+            ? "••••" + u.kimiApiKey.slice(-4)
+            : "";
           this.setData({
             serviceNote: u.serviceNote || "",
             kimiApiKey: u.kimiApiKey || "",
             kimiMasked: u.kimiApiKey ? "••••" + u.kimiApiKey.slice(-4) : "",
             kimiModel: model,
             kimiModelLabel: this.modelLabel(model),
+            recMasked: keyMasked,
+            isDeepSeekModel: ds,
+            deepseekApiKey: u.deepseekApiKey || "",
+            deepseekMasked: u.deepseekApiKey ? "••••" + u.deepseekApiKey.slice(-4) : "",
           });
         }
       })
@@ -144,13 +168,22 @@ Page({
   },
 
   // ---------- 识别设置（Kimi API Key + 识别模型，二合一） ----------
+  isDeepSeek(value) {
+    return /^deepseek/i.test(String(value || ""));
+  },
+
   modelLabel(value) {
     const m = KIMI_MODELS.find((x) => x.value === value);
     return m ? m.label : KIMI_MODELS[0].label;
   },
 
   openRecSettings() {
-    this.setData({ showRecModal: true, kimiValue: this.data.kimiApiKey });
+    this.setData({
+      showRecModal: true,
+      kimiValue: this.data.kimiApiKey,
+      deepseekValue: this.data.deepseekApiKey,
+      isDeepSeekModel: this.isDeepSeek(this.data.kimiModel),
+    });
   },
 
   closeRecModal() {
@@ -163,7 +196,13 @@ Page({
       itemList: KIMI_MODELS.map((m) => m.label),
       success: (res) => {
         const m = KIMI_MODELS[res.tapIndex];
-        if (m) this.setData({ kimiModel: m.value, kimiModelLabel: m.label });
+        if (m) {
+          this.setData({
+            kimiModel: m.value,
+            kimiModelLabel: m.label,
+            isDeepSeekModel: this.isDeepSeek(m.value),
+          });
+        }
       },
       fail: () => {},
     });
@@ -173,7 +212,11 @@ Page({
     this.setData({ kimiValue: e.detail.value });
   },
 
-  // 保存识别设置：Key 和模型一次保存
+  onDeepSeekKeyInput(e) {
+    this.setData({ deepseekValue: e.detail.value });
+  },
+
+  // 保存识别设置：模型 + 所选服务商的 Key / 地址一次保存
   async saveRecSettings() {
     if (this.data.saving) return;
     this.setData({ saving: true });
@@ -194,12 +237,24 @@ Page({
         wx.showToast({ title: (modelRes.result && modelRes.result.msg) || "模型保存失败", icon: "none" });
         return;
       }
+      // 当前选的是 DeepSeek 时，把它的 Key / 地址也存下（切回 Kimi 时不影响）
+      if (this.data.isDeepSeekModel) {
+        const dsKey = await callUserOps("updateDeepSeekKey", {
+          deepseekApiKey: this.data.deepseekValue,
+        });
+        if (!(dsKey.result && dsKey.result.success)) {
+          this.setData({ saving: false });
+          wx.showToast({ title: (dsKey.result && dsKey.result.msg) || "DeepSeek Key 保存失败", icon: "none" });
+          return;
+        }
+      }
       const key = (keyRes.result.user && keyRes.result.user.kimiApiKey) || "";
       this.setData({
         kimiApiKey: key,
         kimiMasked: key ? "••••" + key.slice(-4) : "",
         showRecModal: false,
       });
+      this.loadUser();
       wx.showToast({ title: "已保存" });
     } catch (e) {
       console.error("保存识别设置失败", e);

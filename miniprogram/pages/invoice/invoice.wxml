@@ -34,6 +34,10 @@
     已添加 {{images.length}} 张发票
   </view>
 
+  <view class="ai-hint" wx:if="{{images.length > 0}}">
+    AI 识别仅供参考，部分内容可能识别有误，请在确认页核对后再入库
+  </view>
+
   <view class="actions" wx:if="{{images.length > 0}}">
     <button class="btn-plain clear-btn" bindtap="clearAll">清除全部</button>
     <button class="btn-primary recognize-btn {{starting ? 'btn-disabled' : ''}}" bindtap="onRecognize">

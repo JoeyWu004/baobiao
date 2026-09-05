@@ -34,8 +34,8 @@
   <view class="card menu-card" bindtap="openRecSettings">
     <view class="menu-text-col">
       <text class="menu-text">🔑 识别设置</text>
-      <text class="menu-sub" wx:if="{{kimiMasked || kimiModelLabel}}">{{kimiModelLabel}}{{kimiMasked ? ' · ' + kimiMasked : ''}}</text>
-      <text class="menu-sub menu-sub-empty" wx:else>设置发票识别模型与 Kimi API Key</text>
+      <text class="menu-sub" wx:if="{{recMasked || kimiModelLabel}}">{{kimiModelLabel}}{{recMasked ? ' · ' + recMasked : ''}}</text>
+      <text class="menu-sub menu-sub-empty" wx:else>设置发票识别模型与 API Key</text>
     </view>
     <text class="menu-arrow">›</text>
   </view>
@@ -77,15 +77,31 @@
           <text class="rec-row-arrow">›</text>
         </view>
       </view>
-      <view class="rec-row-label rec-key-label">Kimi API Key</view>
-      <input
-        class="modal-input"
-        password="{{true}}"
-        placeholder="sk-…"
-        value="{{kimiValue}}"
-        bindinput="onKimiInput"
-      />
-      <view class="modal-tip">模型与 Key 用于发票识别；Key 仅保存在你的账户下，输入时以圆点遮蔽。</view>
+
+      <!-- Kimi：模型选择为 Kimi 时显示 -->
+      <block wx:if="{{!isDeepSeekModel}}">
+        <view class="rec-row-label rec-key-label">Kimi API Key</view>
+        <input
+          class="modal-input"
+          password="{{true}}"
+          placeholder="sk-…"
+          value="{{kimiValue}}"
+          bindinput="onKimiInput"
+        />
+        <view class="modal-tip">模型与 Key 用于发票识别；Key 仅保存在你的账户下，输入时以圆点遮蔽。</view>
+      </block>
+
+      <!-- DeepSeek：模型选择为 DeepSeek 时显示（地址固定用官方默认，仅需填 Key） -->
+      <block wx:if="{{isDeepSeekModel}}">
+        <view class="rec-row-label rec-key-label">DeepSeek API Key</view>
+        <input
+          class="modal-input"
+          password="{{true}}"
+          placeholder="sk-…"
+          value="{{deepseekValue}}"
+          bindinput="onDeepSeekKeyInput"
+        />
+      </block>
       <view class="modal-btns">
         <button class="modal-btn modal-cancel" bindtap="closeRecModal">取消</button>
         <button class="modal-btn modal-ok" bindtap="saveRecSettings">{{saving ? '保存中…' : '保存'}}</button>

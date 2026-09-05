@@ -25,6 +25,8 @@ Page({
       supplier: inv.supplier || "",
       date: inv.date || fmtDate(new Date()),
       fileID: inv.fileID || "",
+      model: inv.model || "",
+      modelLabel: this.modelLabel(inv.model),
       items: (inv.items || []).map((it) => ({
         uid: this.newUid(),
         name: it.name || "",
@@ -59,6 +61,15 @@ Page({
   newUid() {
     this._uid += 1;
     return "inv-" + this._uid;
+  },
+
+  // 识别模型 id → 展示名（供确认页标注「这张图是哪个模型识别的」）
+  modelLabel(value) {
+    const m = String(value || "");
+    if (/^kimi-k2/i.test(m)) return "Kimi K2.6";
+    if (/^kimi-k3/i.test(m)) return "Kimi K3";
+    if (/^deepseek/i.test(m)) return "DeepSeek V4 Flash";
+    return m || "";
   },
 
   ci() {
@@ -247,6 +258,7 @@ Page({
         items,
         invoiceCount: 1,
         fileID: inv.fileID || "",
+        model: inv.model || "", // 识别这张发票用的模型，进货详情页展示
         createTime: db().serverDate(),
       },
     });

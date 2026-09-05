@@ -10,6 +10,7 @@ Page({
     imageUrl: "",
     loading: true,
     saving: false,
+    modelLabel: "",
   },
 
   onLoad(options) {
@@ -21,6 +22,15 @@ Page({
   newUid() {
     this._uid += 1;
     return "p-" + this._uid;
+  },
+
+  // 识别模型 id → 展示名（进货详情页标注识别这张发票用的模型）
+  modelLabel(value) {
+    const m = String(value || "");
+    if (/^kimi-k2/i.test(m)) return "Kimi K2.6";
+    if (/^kimi-k3/i.test(m)) return "Kimi K3";
+    if (/^deepseek/i.test(m)) return "DeepSeek V4 Flash";
+    return m || "";
   },
 
   async load() {
@@ -48,6 +58,7 @@ Page({
         purchase: p,
         items,
         totalText: fmtMoney(p.totalAmount || items.reduce((s, it) => s + it.amount, 0)),
+        modelLabel: this.modelLabel(p.model),
       });
       // 发票图片
       if (p.fileID) {
@@ -342,6 +353,8 @@ Page({
             updateTime: db().serverDate(),
           },
         });
+      // 6) 重建本发票涉及商品的数量（归入保存：按 发票/进货 − 报表 + 手动 重算库存；仅数量/单位变动时触发）
+      await this.rebuildProductsForSave(baseline, payloadItems);
       wx.hideLoading();
       this.setData({ saving: false });
       wx.showToast({
@@ -459,70 +472,41 @@ Page({
     return p && !p.deleted ? p : null;
   },
 
-  // 重建数量（本行）：按该商品全部数量记录（含手动）重算库存
-  async onRebuildItem(e) {
-    const index = Number(e.currentTarget.dataset.index);
-    const item = this.data.items[index];
-    if (!item) return;
-    const name = (item.name || "").trim();
-    if (!name) {
-      wx.showToast({ title: "请先填写商品名", icon: "none" });
-      return;
-    }
-    wx.showLoading({ title: "计算中…" });
-    try {
-      const product = await this.findProductByName(name);
-      if (!product) {
-        wx.showToast({ title: "未找到同名商品", icon: "none" });
-        return;
-      }
-      const r0 = (
-        await callReportOps("rebuildQuantity", { productId: product._id, dryRun: true })
-      ).result;
-      if (!r0 || !r0.success) {
-        wx.showToast({ title: (r0 && r0.msg) || "计算失败", icon: "none" });
-        return;
-      }
-      let lines = Object.keys(r0.computed).map(
-        (u) => `${u}: ${Number(r0.old[u]) || 0} → ${Number(r0.computed[u]) || 0}`
-      );
-      if (lines.length > 5) lines = lines.slice(0, 5).concat("…");
-      const content =
-        "将按该商品全部数量变动记录（含手动，手动真实增减）重算库存并保留记录；旧手动记录后续可自行删除。\n\n" +
-        lines.join("\n") +
-        "\n\n确认重建？";
-      wx.showModal({
-        title: "重建数量记录",
-        content,
-        confirmColor: "#fa5151",
-        success: (res) => {
-          if (res.confirm) this._doRebuild(product._id);
-        },
-      });
-    } catch (e) {
-      console.error("重建预览失败", e);
-      wx.showToast({ title: "计算失败", icon: "none" });
-    } finally {
-      wx.hideLoading();
-    }
+  // 汇总 (名称,单位)->数量，用于判断哪些商品的数量/单位发生了变动
+  _sumQtyByUnit(items) {
+    const m = {};
+    (items || []).forEach((it) => {
+      const name = (it.name || "").trim();
+      if (!name) return;
+      const unit = (it.unit || "").trim() || "个";
+      const k = name + " " + unit;
+      m[k] = roundMoney((m[k] || 0) + (Number(it.quantity) || 0));
+    });
+    return m;
   },
 
-  async _doRebuild(productId) {
-    wx.showLoading({ title: "重建中…" });
-    try {
-      const r = (
-        await callReportOps("rebuildQuantity", { productId, dryRun: false })
-      ).result;
-      if (r && r.success) {
-        wx.showToast({ title: "已重建", icon: "success" });
-      } else {
-        wx.showToast({ title: (r && r.msg) || "重建失败", icon: "none" });
+  // 重建本发票涉及商品的数量（归入保存：按 发票/进货 − 报表 + 手动 重算库存）
+  // 仅对保存前后「数量/单位」真正发生变动的商品后台重算；只改了名称/单价/供应商/日期则不触发。
+  async rebuildProductsForSave(baselineItems, payloadItems) {
+    const oldMap = this._sumQtyByUnit(baselineItems);
+    const newMap = this._sumQtyByUnit(payloadItems);
+    const keys = [...new Set([...Object.keys(oldMap), ...Object.keys(newMap)])];
+    const changedNames = new Set();
+    for (const k of keys) {
+      const oldQty = oldMap[k] || 0;
+      const newQty = newMap[k] || 0;
+      if (Math.abs(oldQty - newQty) > 0.001) {
+        changedNames.add(k.split(" ")[0]);
       }
-    } catch (e) {
-      console.error("重建失败", e);
-      wx.showToast({ title: "重建失败", icon: "none" });
-    } finally {
-      wx.hideLoading();
+    }
+    for (const name of changedNames) {
+      try {
+        const product = await this.findProductByName(name);
+        if (!product) continue;
+        await callReportOps("rebuildQuantity", { productId: product._id, dryRun: false });
+      } catch (e) {
+        console.error(`重建 ${name} 数量失败`, e);
+      }
     }
   },
 

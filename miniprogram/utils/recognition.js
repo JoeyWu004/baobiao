@@ -209,6 +209,7 @@ async function runLoop(jobId) {
           date: res.result.date || "",
           title: res.result.title || "",
           fileID,
+          model: res.result.model || "",
         };
       } else {
         failed += 1;

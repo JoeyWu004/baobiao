@@ -39,6 +39,16 @@
   gap: 24rpx;
 }
 
+/* 识别模型标注（这张图是哪个模型识别的） */
+.model-tag {
+  align-self: flex-start;
+  font-size: 23rpx;
+  color: #666;
+  background: #f5f6f8;
+  border-radius: 8rpx;
+  padding: 6rpx 16rpx;
+}
+
 .head-row {
   display: flex;
   align-items: center;

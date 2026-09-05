@@ -117,27 +117,93 @@ function unitQuantity(product, unit) {
   return Number(product.quantity || 0);
 }
 
-// 汇总某商品各单位净数量变化（含手动记录：手动也真实增减库存）
-async function groupQtyByUnit(OPENID, productId) {
-  const group = {};
+// 重算商品各单位当前库存：直接读源单据，而非回放数量流水。
+// 口径 = Σ(发票/进货入库) − Σ(报表出库) + Σ(手动调整)。
+// 单位统一归一化到商品有效单位（无效单位如幻影"个"回退到默认单位），
+// 从而修掉「报表扣到幻影单位 / 扣减被吞」的原 bug（回放流水会把这些错误原样再现）。
+// 报表 items 有 productId 可靠匹配（删除的报表已回补库存，跳过）；进货 items 无 productId，按名字匹配。
+async function recomputeQtyByUnit(OPENID, product) {
+  const validUnits =
+    Array.isArray(product.units) && product.units.length
+      ? product.units.map((u) => (u.name || "").trim()).filter(Boolean)
+      : [(product.unit || "个").trim()];
+  const defaultUnit = validUnits[0] || "个";
+  const norm = (u) => {
+    const nu = (u || "").trim() || "个";
+    return validUnits.includes(nu) ? nu : defaultUnit;
+  };
+  const computed = {};
+  const add = (unit, delta) => {
+    const n = norm(unit);
+    computed[n] = roundMoney((computed[n] || 0) + roundMoney(Number(delta) || 0));
+  };
+
   const pageSize = 100;
-  let offset = 0;
-  for (;;) {
-    const res = await db
-      .collection("quantityHistory")
-      .where({ _openid: OPENID, productId })
-      .skip(offset)
-      .limit(pageSize)
-      .get();
-    if (!res.data || res.data.length === 0) break;
-    for (const h of res.data) {
-      const u = (h.unit || "").trim() || "个";
-      group[u] = roundMoney((group[u] || 0) + (Number(h.delta) || 0));
+  const productName = (product.name || "").trim();
+
+  // ① 入库：发票/进货（按名字匹配）
+  if (productName) {
+    let offset = 0;
+    for (;;) {
+      const res = await db
+        .collection("purchases")
+        .where({ _openid: OPENID, "items.name": productName })
+        .skip(offset)
+        .limit(pageSize)
+        .get();
+      if (!res.data || res.data.length === 0) break;
+      for (const p of res.data) {
+        for (const it of p.items || []) {
+          if (it.name === productName) add(it.unit, it.quantity);
+        }
+      }
+      offset += res.data.length;
+      if (res.data.length < pageSize) break;
     }
-    offset += res.data.length;
-    if (res.data.length < pageSize) break;
   }
-  return group;
+
+  // ② 出库：报表（按 productId 可靠匹配；删除的报表已回补库存，跳过不重复扣）
+  {
+    let offset = 0;
+    for (;;) {
+      const res = await db
+        .collection("reports")
+        .where({ _openid: OPENID, "items.productId": product._id })
+        .skip(offset)
+        .limit(pageSize)
+        .get();
+      if (!res.data || res.data.length === 0) break;
+      for (const r of res.data) {
+        if (r.deleted === true) continue;
+        for (const it of r.items || []) {
+          if (it.type === "goods" && it.productId === product._id) {
+            add(it.unit, -Number(it.quantity) || 0);
+          }
+        }
+      }
+      offset += res.data.length;
+      if (res.data.length < pageSize) break;
+    }
+  }
+
+  // ③ 手动调整：quantityHistory source==='manual'
+  {
+    let offset = 0;
+    for (;;) {
+      const res = await db
+        .collection("quantityHistory")
+        .where({ _openid: OPENID, productId: product._id, source: "manual" })
+        .skip(offset)
+        .limit(pageSize)
+        .get();
+      if (!res.data || res.data.length === 0) break;
+      for (const h of res.data) add(h.unit, h.delta);
+      offset += res.data.length;
+      if (res.data.length < pageSize) break;
+    }
+  }
+
+  return computed;
 }
 
 exports.main = async (event) => {
@@ -169,6 +235,8 @@ exports.main = async (event) => {
       return getPriceHistory(OPENID, event);
     case "rebuildQuantity":
       return rebuildQuantity(OPENID, event);
+    case "rebuildSource":
+      return rebuildSource(OPENID, event);
     case "syncProductName":
       return syncProductName(OPENID, event);
     case "seenInvoiceDigests":
@@ -776,7 +844,8 @@ async function rebuildQuantity(OPENID, event) {
       return { success: false, msg: "无权操作该商品" };
     }
 
-    const group = await groupQtyByUnit(OPENID, productId);
+    // 重算：直接读报表/进货/手动（而非回放流水），单位归一化到商品有效单位，修掉幻影单位吞扣
+    const recomputed = await recomputeQtyByUnit(OPENID, product);
     // 商品当前各单位（兼容无 units 的旧数据）
     const curUnits =
       Array.isArray(product.units) && product.units.length
@@ -795,11 +864,14 @@ async function rebuildQuantity(OPENID, event) {
     for (const u of curUnits) {
       const name = (u.name || "").trim() || "个";
       old[name] = roundMoney(Number(u.quantity) || 0);
-      computed[name] = roundMoney(group[name] || 0); // 无业务流水 → 0
+      computed[name] = roundMoney(recomputed[name] !== undefined ? recomputed[name] : 0); // 无单据/流水 → 0（含遗留幻影单位清零）
     }
-    // 流水里出现、但商品 units 里没有的单位（遗留幻影单位）
-    Object.keys(group).forEach((name) => {
-      if (!(name in old)) computed[name] = roundMoney(group[name]);
+    // 单据里出现、但商品 units 里没有的单位（正常应已含于 units，预防旧数据无 units）
+    Object.keys(recomputed).forEach((name) => {
+      if (!(name in old)) {
+        old[name] = 0;
+        computed[name] = roundMoney(recomputed[name]);
+      }
     });
 
     if (dryRun) {
@@ -817,12 +889,102 @@ async function rebuildQuantity(OPENID, event) {
       }
     });
     const updateData = { units: newUnits, updateTime: db.serverDate() };
-    if (newUnits.length) updateData.quantity = newUnits[0].quantity;
+    if (newUnits.length) updateData.quantity = roundMoney(newUnits[0].quantity);
     await db.collection("products").doc(productId).update({ data: updateData });
 
     return { success: true, old, computed };
   } catch (e) {
     console.error("rebuildQuantity error", e);
+    return { success: false, msg: e.errMsg || e.message };
+  }
+}
+
+// 兼容 serverDate / 时间字符串 / Date → YYYY-MM-DD
+function fmtYMD(v) {
+  if (!v) return "";
+  if (typeof v === "string") return v.slice(0, 10);
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return "";
+  const p = (n) => (n < 10 ? "0" + n : "" + n);
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+// 补齐商品来源：旧数据无 source，按「含该商品名的最早进货记录」推导来源；
+// 无进货记录则按建档时间记为手动录入。dryRun 只返回候选，confirm 才写回。
+async function rebuildSource(OPENID, event) {
+  const { productId, dryRun } = event;
+  if (!productId) return { success: false, msg: "缺少 productId" };
+  try {
+    let product;
+    try {
+      const doc = await db.collection("products").doc(productId).get();
+      product = doc.data;
+    } catch (e) {
+      return { success: false, msg: "商品不存在" };
+    }
+    if (!product || (product._openid !== OPENID && product.openid !== OPENID)) {
+      return { success: false, msg: "无权操作该商品" };
+    }
+    const name = (product.name || "").trim();
+    const current = product.source || null;
+
+    // 找含该商品名的进货记录，取最早一条（按 date 再按 createTime；跳过已删除，保证 purchaseId 可回看）
+    let earliest = null;
+    if (name) {
+      const pageSize = 100;
+      let offset = 0;
+      for (;;) {
+        const res = await db
+          .collection("purchases")
+          .where({ _openid: OPENID, "items.name": name })
+          .skip(offset)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        for (const p of res.data) {
+          if (p.deleted === true) continue;
+          if (!(p.items || []).some((it) => it.name === name)) continue;
+          if (!earliest) {
+            earliest = p;
+            continue;
+          }
+          const a = { d: p.date || "", t: p.createTime ? new Date(p.createTime).getTime() : 0 };
+          const b = { d: earliest.date || "", t: earliest.createTime ? new Date(earliest.createTime).getTime() : 0 };
+          if (a.d < b.d || (a.d === b.d && a.t < b.t)) earliest = p;
+        }
+        offset += res.data.length;
+        if (res.data.length < pageSize) break;
+      }
+    }
+
+    let candidate;
+    let hasPurchase = !!earliest;
+    if (earliest) {
+      // invoice 导入的进货记录带 fileID，其余为手动录入的进货
+      candidate = {
+        type: earliest.fileID ? "invoice" : "purchase",
+        purchaseId: earliest._id,
+        date: earliest.date || "",
+        supplier: earliest.supplier || "",
+      };
+    } else {
+      candidate = {
+        type: "manual",
+        purchaseId: "",
+        date: fmtYMD(product.createTime),
+        supplier: "",
+      };
+    }
+
+    if (dryRun) {
+      return { success: true, current, candidate, hasPurchase };
+    }
+    await db.collection("products").doc(productId).update({
+      data: { source: candidate, updateTime: db.serverDate() },
+    });
+    return { success: true, current, candidate, hasPurchase };
+  } catch (e) {
+    console.error("rebuildSource error", e);
     return { success: false, msg: e.errMsg || e.message };
   }
 }

@@ -9,6 +9,7 @@
 
   <!-- 单据信息（当前发票） -->
   <view class="card head-card">
+    <view class="model-tag" wx:if="{{invoices[currentIndex].modelLabel}}">识别模型：{{invoices[currentIndex].modelLabel}}</view>
     <view class="head-row">
       <text class="head-label">供应商</text>
       <input

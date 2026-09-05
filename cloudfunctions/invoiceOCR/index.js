@@ -6,29 +6,49 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
 // 默认识别模型：Kimi K2.6（支持图片，输出价约 K3 的 1/4，可关思考）
-// API Key 优先取用户在小程序「我的」页填写的（users.kimiApiKey）
+// 模型以 users.kimiModel 为「当前识别模型」，可为 Kimi 或 DeepSeek（按前缀区分服务商）
+// API Key 与请求地址按服务商分别存：kimiApiKey / deepseekApiKey + deepseekBaseUrl
 // 模型优先取用户选择的（users.kimiModel），回退环境变量 KIMI_MODEL，再回退默认
 const DEFAULT_MODEL = "kimi-k2.6";
-const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3"];
+const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3", "deepseek-v4-flash-vision-exp"];
 const KIMI_URL = "https://api.moonshot.cn/v1/chat/completions";
+const DEEPSEEK_DEFAULT_URL = "https://api.deepseek.com/v1/chat/completions";
 
-// 获取当前账户的 Kimi API Key 和识别模型
-async function getUserKimiSettings(OPENID) {
-  const envKey = process.env.KIMI_API_KEY || "";
-  const envModel = process.env.KIMI_MODEL || DEFAULT_MODEL;
-  let apiKey = envKey;
-  let model = ALLOWED_MODELS.includes(envModel) ? envModel : DEFAULT_MODEL;
+function isDeepSeek(model) {
+  return /^deepseek/i.test(String(model || ""));
+}
+
+// 读取一次当前账户
+async function getUserOnce(OPENID) {
   try {
     const found = await db.collection("users").where({ openid: OPENID }).get();
-    if (found.data.length > 0) {
-      const u = found.data[0];
-      if (u.kimiApiKey) apiKey = u.kimiApiKey;
-      if (u.kimiModel && ALLOWED_MODELS.includes(u.kimiModel)) model = u.kimiModel;
-    }
+    return found.data.length > 0 ? found.data[0] : null;
   } catch (e) {
-    console.error("getUserKimiSettings error", e);
+    console.error("getUserOnce error", e);
+    return null;
   }
-  return { apiKey, model };
+}
+
+// 获取当前账户的识别设置：按模型确定服务商的 apiKey 与请求端点
+async function getUserSettings(OPENID) {
+  const envModel = process.env.KIMI_MODEL || DEFAULT_MODEL;
+  let model = ALLOWED_MODELS.includes(envModel) ? envModel : DEFAULT_MODEL;
+  const user = await getUserOnce(OPENID);
+  if (user && user.kimiModel && ALLOWED_MODELS.includes(user.kimiModel)) model = user.kimiModel;
+
+  let apiKey = "";
+  let url = "";
+  if (isDeepSeek(model)) {
+    url =
+      (user && user.deepseekBaseUrl && user.deepseekBaseUrl.trim()) ||
+      process.env.DEEPSEEK_API_URL ||
+      DEEPSEEK_DEFAULT_URL;
+    apiKey = (user && user.deepseekApiKey && user.deepseekApiKey.trim()) || process.env.DEEPSEEK_API_KEY || "";
+  } else {
+    url = KIMI_URL;
+    apiKey = (user && user.kimiApiKey) || process.env.KIMI_API_KEY || "";
+  }
+  return { apiKey, model, url };
 }
 
 const PROMPT = `你是发票/送货单识别助手。识别图片后，只输出一个 JSON 对象，禁止输出任何其他文字、解释、markdown 或思考过程，也不要给 JSON 加注释：
@@ -47,7 +67,7 @@ const PROMPT = `你是发票/送货单识别助手。识别图片后，只输出
 4. items 必须是一个数组，哪怕只有一行也放进数组。
 5. 最终回复必须从 { 开始、以 } 结束，中间是合法 JSON。`;
 
-function callKimi(base64Image, mime, apiKey, model) {
+function callChat(url, base64Image, mime, apiKey, model) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
       model,
@@ -69,9 +89,11 @@ function callKimi(base64Image, mime, apiKey, model) {
       response_format: { type: "json_object" },
     });
 
+    const u = new URL(url);
     const options = {
-      hostname: "api.moonshot.cn",
-      path: "/v1/chat/completions",
+      hostname: u.hostname,
+      port: u.port || undefined,
+      path: (u.pathname || "/") + (u.search || ""),
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -146,18 +168,20 @@ exports.main = async (event) => {
     const { fileID, mimeType } = event;
     const { OPENID } = cloud.getWXContext();
     if (!fileID) return { success: false, msg: "缺少文件" };
-    const { apiKey, model } = await getUserKimiSettings(OPENID);
+    const { apiKey, model, url } = await getUserSettings(OPENID);
     if (!apiKey) {
       return {
         success: false,
-        msg: "未配置 Kimi API Key，请在小程序「我的」页填写",
+        msg: isDeepSeek(model)
+          ? "未配置 DeepSeek API Key，请在小程序「我的」页填写"
+          : "未配置 Kimi API Key，请在小程序「我的」页填写",
       };
     }
     try {
       const dl = await cloud.downloadFile({ fileID });
       const buffer = dl.fileContent;
       const mime = mimeType || "image/jpeg";
-      const raw = await callKimi(buffer.toString("base64"), mime, apiKey, model);
+      const raw = await callChat(url, buffer.toString("base64"), mime, apiKey, model);
 
       let parsed;
       try {
@@ -173,8 +197,8 @@ exports.main = async (event) => {
         parsed.choices[0].message.content;
 
       if (!content) {
-        console.error("Kimi 返回异常:", raw.slice(0, 500));
-        return { success: false, msg: "识别服务返回异常，请检查 API key / 模型名" };
+        console.error("识别服务返回异常:", raw.slice(0, 500));
+        return { success: false, msg: "识别服务返回异常，请检查 API key / 模型名 / 服务地址" };
       }
 
       // content 解析成对象（多级兜底）
@@ -194,6 +218,7 @@ exports.main = async (event) => {
         title: result.title || "",
         supplier: result.supplier || "",
         date: result.date || "",
+        model, // 实际使用的识别模型，供确认页标注「这张图是哪个模型识别的」
       };
     } catch (e) {
       console.error("recognize error", e);

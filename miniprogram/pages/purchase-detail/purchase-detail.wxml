@@ -4,6 +4,7 @@
 
   <block wx:if="{{purchase}}">
     <view class="card head-card">
+      <view class="model-tag" wx:if="{{modelLabel}}">识别模型：{{modelLabel}}</view>
       <view class="head-row">
         <text class="head-label">供应商</text>
         <input class="input-box" placeholder="供应商名称" value="{{purchase.supplier}}" bindinput="onSupplierInput" />
@@ -45,9 +46,6 @@
           <input class="item-input qty" type="digit" value="{{item.quantity}}" data-field="quantity" data-index="{{index}}" bindinput="onItemInput" />
           <input class="item-input price" type="digit" value="{{item.price}}" data-field="price" data-index="{{index}}" bindinput="onItemInput" />
           <text class="item-amount">¥{{item.amountText}}</text>
-        </view>
-        <view class="item-actions">
-          <view class="item-act rebuild" data-index="{{index}}" bindtap="onRebuildItem">重建数量</view>
         </view>
       </view>
     </view>

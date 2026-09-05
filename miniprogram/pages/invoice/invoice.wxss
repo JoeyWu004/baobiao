@@ -113,6 +113,15 @@
   text-align: center;
 }
 
+/* AI 识别准确度提示（灰字） */
+.ai-hint {
+  font-size: 23rpx;
+  color: #aaa;
+  margin-top: 12rpx;
+  text-align: center;
+  line-height: 1.5;
+}
+
 .actions {
   display: flex;
   gap: 20rpx;

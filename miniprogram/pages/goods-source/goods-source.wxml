@@ -12,6 +12,31 @@
     <view class="source-line" wx:if="{{sourceDate}}">日期：{{sourceDate}}</view>
     <view class="source-hint" wx:if="{{sourceType === 'unknown'}}">该商品创建较早，未记录来源</view>
     <view class="source-link" wx:if="{{purchaseId}}" bindtap="goPurchase">查看进货记录 ›</view>
+    <view class="rebuild-btn" wx:if="{{canRebuild}}" bindtap="onRebuildSource">重建来源</view>
+  </view>
+
+  <!-- 该商品全部进货记录（多次进货 = 多张发票） -->
+  <view class="card src-list-card" wx:if="{{!loading && purchaseCount > 0}}">
+    <view class="src-list-title">进货记录（{{purchaseCount}} 笔）</view>
+    <view
+      class="src-row"
+      wx:for="{{purchasesList}}"
+      wx:key="_id"
+      data-id="{{item._id}}"
+      bindtap="goPurchaseById"
+    >
+      <view class="src-row-info">
+        <view class="src-row-top">
+          <text class="src-row-supplier">{{item.supplierText}}</text>
+          <text class="src-tag" wx:if="{{item.isSource}}">来源</text>
+        </view>
+        <view class="src-row-sub">日期：{{item.date || '未填'}}</view>
+      </view>
+      <view class="src-row-right">
+        <text class="src-row-amount">¥{{item.amountText}}</text>
+        <text class="src-row-arrow">›</text>
+      </view>
+    </view>
   </view>
 
   <view class="empty" wx:if="{{loading}}">加载中…</view>

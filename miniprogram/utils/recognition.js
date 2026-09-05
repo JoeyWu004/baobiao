@@ -3,7 +3,7 @@
 // 每张结果落库（results[i]、files[i]、done/success/failed），小程序被杀后可凭 done 续跑。
 // 页面（goods/发票/确认页）通过 subscribe / getState 感知进度，无需常驻浮窗。
 // 配套：云控制台需新建集合 recognitionJobs，权限「仅创建者可读写」。
-const { db } = require("./cloud");
+const { db, callReportOps } = require("./cloud");
 
 const TAB_GOODS_INDEX = 1; // tabBar 顺序：报表0 进货1 地图2 我的3
 
@@ -118,27 +118,17 @@ async function createJob(imageList) {
   return addRes._id;
 }
 
-// 历史已成功识别/已确认的图片指纹集合，供发票页防重复上传
+// 历史已成功识别/已确认的图片指纹集合，供发票页防重复上传。
+// 由 reportOps.seenInvoiceDigests 计算：只有「该图片仍对应当前未删除的进货记录」才算已导入，
+// 发票被删除并清空回收站后不再拦截，允许重新导入同一张发票。
 async function seenDigests() {
-  const cmd = db().command;
   try {
-    const res = await db()
-      .collection("recognitionJobs")
-      .where({ status: cmd.in(["done", "partial", "confirmed"]) })
-      .orderBy("createTime", "desc")
-      .limit(20)
-      .get();
-    const seen = new Set();
-    (res.data || []).forEach((j) => {
-      const files = j.files || [];
-      const results = j.results || [];
-      files.forEach((f, i) => {
-        // 只收识别成功的结果；识别失败的发票允许重传
-        if (f && f.digest && results[i]) seen.add(f.digest);
-      });
-    });
-    return seen;
+    const r = await callReportOps("seenInvoiceDigests");
+    const res = r.result || {};
+    if (!res.success) return new Set();
+    return new Set((res.digests || []).filter(Boolean));
   } catch (e) {
+    console.error("seenDigests error", e);
     return new Set();
   }
 }

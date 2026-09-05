@@ -7,6 +7,11 @@
     <view class="filter-chip {{filter === 'report' ? 'chip-active' : ''}}" data-filter="report" bindtap="setFilter">报表</view>
   </view>
 
+  <view class="rebuild-bar">
+    <view class="rebuild-btn" bindtap="onRebuildQty">重建数量记录（含手动）</view>
+    <view class="rebuild-tip">按全部记录重算库存并保留记录；是否删除旧手动记录由你自行处理</view>
+  </view>
+
   <view
     class="card hist-card"
     wx:for="{{list}}"

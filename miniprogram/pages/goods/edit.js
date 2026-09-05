@@ -1,5 +1,5 @@
 // pages/goods/edit.js 商品新增/编辑（支持多单位，各单位独立价格与库存）
-const { db } = require("../../utils/cloud");
+const { db, callReportOps } = require("../../utils/cloud");
 const { roundMoney } = require("../../utils/format");
 
 Page({
@@ -67,6 +67,7 @@ Page({
         categoryPath: catPath,
         categoryText: catPath.join(" / "),
       });
+      this.oldName = p.name || ""; // 供改名同步判断
       this.oldUnits = units.map((u) => ({
         name: u.name,
         costPrice: parseFloat(u.costPrice) || 0,
@@ -199,6 +200,7 @@ Page({
         await this.writeInitialPrice(addRes._id, f.name.trim(), parsed);
       } else {
         await this.saveEdit(data);
+        await this.maybePromptSyncName(f.name.trim());
       }
       wx.showToast({ title: "已保存" });
       setTimeout(() => wx.navigateBack(), 600);
@@ -247,6 +249,38 @@ Page({
         });
       }
     }
+  },
+
+  // 改名后询问是否同步到所有报表/进货/历史
+  async maybePromptSyncName(newName) {
+    const oldName = (this.oldName || "").trim();
+    if (!oldName || oldName === newName) return;
+    await new Promise((resolve) => {
+      wx.showModal({
+        title: "改名并同步",
+        content: `商品名已由「${oldName}」改为「${newName}」，是否同步到所有报表/进货/历史？`,
+        confirmText: "同步",
+        cancelText: "不同步",
+        confirmColor: "#07c160",
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              await callReportOps("syncProductName", {
+                productId: this.data._id,
+                oldName,
+                newName,
+              });
+              wx.showToast({ title: "已同步", icon: "none" });
+            } catch (e) {
+              console.error("改名同步失败", e);
+              wx.showToast({ title: "同步失败", icon: "none" });
+            }
+          }
+          resolve();
+        },
+        fail: () => resolve(),
+      });
+    });
   },
 
   // 编辑：按单位对比价格/数量变化写历史

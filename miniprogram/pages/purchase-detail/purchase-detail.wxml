@@ -46,6 +46,9 @@
           <input class="item-input price" type="digit" value="{{item.price}}" data-field="price" data-index="{{index}}" bindinput="onItemInput" />
           <text class="item-amount">¥{{item.amountText}}</text>
         </view>
+        <view class="item-actions">
+          <view class="item-act rebuild" data-index="{{index}}" bindtap="onRebuildItem">重建数量</view>
+        </view>
       </view>
     </view>
 

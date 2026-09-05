@@ -1,5 +1,5 @@
 // pages/purchase-detail/purchase-detail.js 进货明细
-const { db } = require("../../utils/cloud");
+const { db, callReportOps } = require("../../utils/cloud");
 const { fmtMoney, fmtDate, roundMoney } = require("../../utils/format");
 
 Page({
@@ -36,6 +36,7 @@ Page({
         return {
           uid: this.newUid(),
           name: it.name || "",
+          origName: it.name || "", // 记录原始名，供改名并同步判断旧名
           unit: it.unit || "个",
           quantity,
           price,
@@ -276,7 +277,7 @@ Page({
     }
   },
 
-  // 保存修改：同步修正商品库库存/进价后，更新 purchases 记录
+  // 保存修改：统一处理改名→同步报表/进货/历史；按差额修正商品库库存/进价；同步日期/供应商。
   async onSave() {
     const { items, purchase } = this.data;
     if (!items.length) {
@@ -302,10 +303,10 @@ Page({
     }));
     const totalAmount = roundMoney(payloadItems.reduce((s, it) => s + it.amount, 0));
     const supplier = (purchase.supplier || "").trim();
+    const date = purchase.date || fmtDate(new Date());
     this.setData({ saving: true });
-    wx.showLoading({ title: "保存中…" });
     try {
-      // 以数据库当前明细为基线做库存对账（支持同一记录多次编辑）
+      // 以数据库当前明细为基线（支持同一记录多次编辑）
       const oldRes = await db().collection("purchases").doc(this.purchaseId).get();
       const oldItems = (oldRes.data.items || []).map((it) => ({
         name: it.name || "",
@@ -313,14 +314,28 @@ Page({
         quantity: Number(it.quantity) || 0,
         price: Number(it.price) || 0,
       }));
-      await this.syncStock(oldItems, payloadItems, supplier);
+
+      // 1) 处理改名：行名相对 origName 变化 → 改名/合并，统一到商品库+报表+进货+历史
+      const { renameOf, renamedCount } = await this.applyNameSyncs(items);
+
+      // 2) 基线重映射：改名行的旧名对齐为新名，避免 syncStock 把改名当「旧删新增」双重计库存
+      const baseline = oldItems.map((it) =>
+        renameOf[it.name] ? { ...it, name: renameOf[it.name] } : it
+      );
+
+      wx.showLoading({ title: "保存中…" });
+      // 3) 数量/单位/进价差额修正
+      await this.syncStock(baseline, payloadItems, supplier);
+      // 4) 日期/供应商同步到由本进货建档的商品
+      await this.syncProductSource(date, supplier);
+      // 5) 更新进货记录
       await db()
         .collection("purchases")
         .doc(this.purchaseId)
         .update({
           data: {
             supplier,
-            date: purchase.date || fmtDate(new Date()),
+            date,
             items: payloadItems,
             totalAmount,
             itemCount: payloadItems.length,
@@ -329,12 +344,185 @@ Page({
         });
       wx.hideLoading();
       this.setData({ saving: false });
-      wx.showToast({ title: "已保存并修正库存" });
+      wx.showToast({
+        title: renamedCount ? `已保存，同步${renamedCount}处改名` : "已保存并修正库存",
+        icon: "none",
+      });
     } catch (e) {
       wx.hideLoading();
       this.setData({ saving: false });
       console.error("保存失败", e);
       wx.showToast({ title: "保存失败", icon: "none" });
+    }
+  },
+
+  // 逐行处理改名：对 name 相对 origName 变化的行，改名并全局同步；撞上已存在同名商品则询问是否合并。
+  // 返回 { renameOf: {旧名: 新名}, renamedCount }；并把本行 origName 更新为新名，避免下次保存重复触发。
+  async applyNameSyncs(items) {
+    const renameOf = {};
+    let renamedCount = 0;
+    for (const it of items) {
+      const oldName = (it.origName || "").trim();
+      const newName = (it.name || "").trim();
+      if (!oldName || oldName === newName) continue;
+      const drop = await this.findProductByName(oldName);
+      if (!drop) continue; // 旧名从未作为商品入库，无改名对象
+      const keep = await this.findProductByName(newName);
+      let result;
+      if (keep && keep._id !== drop._id) {
+        // 撞名：询问是否合并
+        result = await this.promptMergeDrop(drop, keep, oldName, newName);
+      } else {
+        const r = await callReportOps("syncProductName", {
+          productId: drop._id,
+          oldName,
+          newName,
+        });
+        result = r.result;
+      }
+      if (result && result.success) {
+        if (!renameOf[oldName]) renameOf[oldName] = newName;
+        renamedCount++;
+        it.origName = newName;
+      }
+    }
+    return { renameOf, renamedCount };
+  },
+
+  // 撞名弹窗：确认=合并（并入 keep、移除 drop），取消=仅改名（保留重复商品）
+  promptMergeDrop(drop, keep, oldName, newName) {
+    return new Promise((resolve) => {
+      wx.showModal({
+        title: "发现同名商品",
+        content: `系统已有商品「${newName}」。要将「${oldName}」的库存/进价合并到「${newName}」吗？\n\n「合并」会并入并移除错名商品；「仅改名」会保留一个重复商品。`,
+        confirmText: "合并",
+        cancelText: "仅改名",
+        confirmColor: "#07c160",
+        success: async (res) => {
+          const payload = { productId: drop._id, oldName, newName };
+          try {
+            const r = res.confirm
+              ? await callReportOps("mergeProduct", {
+                  keepId: keep._id,
+                  dropId: drop._id,
+                  keepName: newName,
+                  dropName: oldName,
+                })
+              : await callReportOps("syncProductName", payload);
+            resolve(r.result);
+          } catch (e) {
+            console.error("改名/合并失败", e);
+            resolve(null);
+          }
+        },
+        fail: () => resolve(null), // 点遮罩取消：不处理
+      });
+    });
+  },
+
+  // 日期/供应商同步：由本进货建档的未合并商品，更新 source.date / source.supplier
+  async syncProductSource(date, supplier) {
+    const pageSize = 100;
+    let offset = 0;
+    for (;;) {
+      const res = await db()
+        .collection("products")
+        .where({ "source.purchaseId": this.purchaseId })
+        .skip(offset)
+        .limit(pageSize)
+        .get();
+      if (!res.data || res.data.length === 0) break;
+      for (const p of res.data) {
+        if (p.deleted) continue;
+        const src = p.source || {};
+        await db().collection("products").doc(p._id).update({
+          data: {
+            source: {
+              ...src,
+              date: date || src.date || "",
+              supplier: supplier !== undefined ? supplier : src.supplier,
+            },
+            updateTime: db().serverDate(),
+          },
+        });
+      }
+      offset += res.data.length;
+      if (res.data.length < pageSize) break;
+    }
+  },
+
+  // 按商品名找商品（排除已删回收站）
+  async findProductByName(name) {
+    if (!name) return null;
+    const res = await db().collection("products").where({ name }).limit(1).get();
+    const p = res.data[0];
+    return p && !p.deleted ? p : null;
+  },
+
+  // 重建数量（本行）：按该商品全部数量记录（含手动）重算库存
+  async onRebuildItem(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    const item = this.data.items[index];
+    if (!item) return;
+    const name = (item.name || "").trim();
+    if (!name) {
+      wx.showToast({ title: "请先填写商品名", icon: "none" });
+      return;
+    }
+    wx.showLoading({ title: "计算中…" });
+    try {
+      const product = await this.findProductByName(name);
+      if (!product) {
+        wx.showToast({ title: "未找到同名商品", icon: "none" });
+        return;
+      }
+      const r0 = (
+        await callReportOps("rebuildQuantity", { productId: product._id, dryRun: true })
+      ).result;
+      if (!r0 || !r0.success) {
+        wx.showToast({ title: (r0 && r0.msg) || "计算失败", icon: "none" });
+        return;
+      }
+      let lines = Object.keys(r0.computed).map(
+        (u) => `${u}: ${Number(r0.old[u]) || 0} → ${Number(r0.computed[u]) || 0}`
+      );
+      if (lines.length > 5) lines = lines.slice(0, 5).concat("…");
+      const content =
+        "将按该商品全部数量变动记录（含手动，手动真实增减）重算库存并保留记录；旧手动记录后续可自行删除。\n\n" +
+        lines.join("\n") +
+        "\n\n确认重建？";
+      wx.showModal({
+        title: "重建数量记录",
+        content,
+        confirmColor: "#fa5151",
+        success: (res) => {
+          if (res.confirm) this._doRebuild(product._id);
+        },
+      });
+    } catch (e) {
+      console.error("重建预览失败", e);
+      wx.showToast({ title: "计算失败", icon: "none" });
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
+  async _doRebuild(productId) {
+    wx.showLoading({ title: "重建中…" });
+    try {
+      const r = (
+        await callReportOps("rebuildQuantity", { productId, dryRun: false })
+      ).result;
+      if (r && r.success) {
+        wx.showToast({ title: "已重建", icon: "success" });
+      } else {
+        wx.showToast({ title: (r && r.msg) || "重建失败", icon: "none" });
+      }
+    } catch (e) {
+      console.error("重建失败", e);
+      wx.showToast({ title: "重建失败", icon: "none" });
+    } finally {
+      wx.hideLoading();
     }
   },
 

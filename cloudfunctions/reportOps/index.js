@@ -74,7 +74,15 @@ async function applyStockDelta(t, OPENID, productId, unit, delta, reportId) {
     const doc = await t.collection("products").doc(productId).get();
     const p = doc.data;
     if (!p) return;
-    const uName = (unit || "").trim() || p.unit || "个";
+    // 若请求单位不是商品的有效单位，回退到真实默认单位，避免凭空新建"个"幻影单位
+    const validUnits =
+      Array.isArray(p.units) && p.units.length
+        ? p.units.map((x) => (x.name || "").trim()).filter(Boolean)
+        : [(p.unit || "个").trim()];
+    let uName = (unit || "").trim() || p.unit || "个";
+    if (validUnits.length && !validUnits.includes(uName)) {
+      uName = validUnits[0];
+    }
     const curQty = unitQuantity(p, uName);
     const after = roundMoney(curQty + delta); // 库存允许为负
     const upd = updateUnitQuantity(p, uName, after);
@@ -109,6 +117,29 @@ function unitQuantity(product, unit) {
   return Number(product.quantity || 0);
 }
 
+// 汇总某商品各单位净数量变化（含手动记录：手动也真实增减库存）
+async function groupQtyByUnit(OPENID, productId) {
+  const group = {};
+  const pageSize = 100;
+  let offset = 0;
+  for (;;) {
+    const res = await db
+      .collection("quantityHistory")
+      .where({ _openid: OPENID, productId })
+      .skip(offset)
+      .limit(pageSize)
+      .get();
+    if (!res.data || res.data.length === 0) break;
+    for (const h of res.data) {
+      const u = (h.unit || "").trim() || "个";
+      group[u] = roundMoney((group[u] || 0) + (Number(h.delta) || 0));
+    }
+    offset += res.data.length;
+    if (res.data.length < pageSize) break;
+  }
+  return group;
+}
+
 exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const action = event.action || event.type;
@@ -136,6 +167,14 @@ exports.main = async (event) => {
       return restoreAllTrash(OPENID, event);
     case "getPriceHistory":
       return getPriceHistory(OPENID, event);
+    case "rebuildQuantity":
+      return rebuildQuantity(OPENID, event);
+    case "syncProductName":
+      return syncProductName(OPENID, event);
+    case "seenInvoiceDigests":
+      return seenInvoiceDigests(OPENID);
+    case "mergeProduct":
+      return mergeProduct(OPENID, event);
     case "getOpenId":
       return { openid: OPENID };
     default:
@@ -162,9 +201,16 @@ async function processItems(t, OPENID, items) {
         // 商品已被删除：保留单据行，跳过价格同步
       }
 
-      let unit = (item.unit || "").trim() || "个";
+      let unit = (item.unit || "").trim();
       if (product) {
-        unit = unit || product.unit || "个";
+        // 校验单位是否为商品的有效单位；为空或不匹配时回退到真实默认单位，避免扣到幻影"个"单位
+        const validUnits =
+          Array.isArray(product.units) && product.units.length
+            ? product.units.map((x) => (x.name || "").trim()).filter(Boolean)
+            : [(product.unit || "个").trim()];
+        if (!unit || !validUnits.includes(unit)) {
+          unit = (product.unit || "").trim() || validUnits[0] || "个";
+        }
         const curSell = unitSellPrice(product, unit);
         // 价格被修改：同步该单位销售价 + 记录价格历史
         if (Math.abs(curSell - price) > 0.001) {
@@ -192,7 +238,7 @@ async function processItems(t, OPENID, items) {
         type: "goods",
         productId: productId,
         name: item.name,
-        unit,
+        unit: unit || "个", // 商品已删除时无单位可循，回退"个"
         price,
         quantity,
         amount,
@@ -708,6 +754,413 @@ async function getPriceHistory(OPENID, event) {
     return { success: true, list: res.data };
   } catch (e) {
     console.error("getPriceHistory error", e);
+    return { success: false, msg: e.errMsg || e.message };
+  }
+}
+
+// 重建商品数量记录：按该商品全部数量变动记录（含手动，手动真实增减）重算各单位当前库存。
+// 保留所有历史记录（不删除）；是否删除旧手动记录由用户后续自行处理。
+// dryRun=true 只返回 old/computed 供预览；dryRun=false 写回商品数量（不动价格，不写 quantityHistory）。
+async function rebuildQuantity(OPENID, event) {
+  const { productId, dryRun } = event;
+  if (!productId) return { success: false, msg: "缺少 productId" };
+  try {
+    let product;
+    try {
+      const doc = await db.collection("products").doc(productId).get();
+      product = doc.data;
+    } catch (e) {
+      return { success: false, msg: "商品不存在" };
+    }
+    if (!product || (product._openid !== OPENID && product.openid !== OPENID)) {
+      return { success: false, msg: "无权操作该商品" };
+    }
+
+    const group = await groupQtyByUnit(OPENID, productId);
+    // 商品当前各单位（兼容无 units 的旧数据）
+    const curUnits =
+      Array.isArray(product.units) && product.units.length
+        ? product.units.slice()
+        : [
+            {
+              name: product.unit || "个",
+              costPrice: product.costPrice || 0,
+              sellPrice: product.sellPrice || 0,
+              quantity: product.quantity || 0,
+            },
+          ];
+
+    const old = {};
+    const computed = {};
+    for (const u of curUnits) {
+      const name = (u.name || "").trim() || "个";
+      old[name] = roundMoney(Number(u.quantity) || 0);
+      computed[name] = roundMoney(group[name] || 0); // 无业务流水 → 0
+    }
+    // 流水里出现、但商品 units 里没有的单位（遗留幻影单位）
+    Object.keys(group).forEach((name) => {
+      if (!(name in old)) computed[name] = roundMoney(group[name]);
+    });
+
+    if (dryRun) {
+      return { success: true, old, computed };
+    }
+
+    // 写回：只改数量，不动价格/单位结构
+    const newUnits = curUnits.map((u) => {
+      const name = (u.name || "").trim() || "个";
+      return { ...u, quantity: computed[name] };
+    });
+    Object.keys(computed).forEach((name) => {
+      if (!newUnits.some((u) => (u.name || "").trim() === name)) {
+        newUnits.push({ name, costPrice: 0, sellPrice: 0, quantity: computed[name] });
+      }
+    });
+    const updateData = { units: newUnits, updateTime: db.serverDate() };
+    if (newUnits.length) updateData.quantity = newUnits[0].quantity;
+    await db.collection("products").doc(productId).update({ data: updateData });
+
+    return { success: true, old, computed };
+  } catch (e) {
+    console.error("rebuildQuantity error", e);
+    return { success: false, msg: e.errMsg || e.message };
+  }
+}
+
+// 商品改名并同步到所有单据（报表明细按 productId、进货明细按旧名、价格/数量历史按 productId）。
+// oldName 必须由调用方传入：goods/edit 保存时已先把 products.name 改成新名，函数内再读会拿到新名。
+async function syncProductName(OPENID, event) {
+  const { productId, oldName, newName } = event;
+  if (!productId) return { success: false, msg: "缺少 productId" };
+  const cleanOld = (oldName || "").trim();
+  const cleanNew = (newName || "").trim();
+  if (!cleanNew) return { success: false, msg: "新名称不能为空" };
+  if (cleanOld === cleanNew) return { success: true, changed: false };
+
+  try {
+    let product;
+    try {
+      const doc = await db.collection("products").doc(productId).get();
+      product = doc.data;
+    } catch (e) {
+      return { success: false, msg: "商品不存在" };
+    }
+    if (!product || (product._openid !== OPENID && product.openid !== OPENID)) {
+      return { success: false, msg: "无权操作该商品" };
+    }
+
+    // 1. 商品规范名
+    await db
+      .collection("products")
+      .doc(productId)
+      .update({ data: { name: cleanNew, updateTime: db.serverDate() } });
+
+    // 2. 报表明细（按 productId，可靠）
+    let reportCount = 0;
+    let reportItemCount = 0;
+    {
+      let offset = 0;
+      const pageSize = 100;
+      for (;;) {
+        const res = await db
+          .collection("reports")
+          .where({ _openid: OPENID, "items.productId": productId })
+          .skip(offset)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        for (const r of res.data) {
+          const items = (r.items || []).map((it) =>
+            it.productId === productId ? { ...it, name: cleanNew } : it
+          );
+          reportItemCount += items.filter((it) => it.productId === productId).length;
+          await db.collection("reports").doc(r._id).update({ data: { items } });
+          reportCount++;
+        }
+        offset += res.data.length;
+        if (res.data.length < pageSize) break;
+      }
+    }
+
+    // 3. 进货明细（无 productId，按旧名匹配）
+    let purchaseCount = 0;
+    let purchaseItemCount = 0;
+    if (cleanOld) {
+      let offset = 0;
+      const pageSize = 100;
+      for (;;) {
+        const res = await db
+          .collection("purchases")
+          .where({ _openid: OPENID, "items.name": cleanOld })
+          .skip(offset)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        for (const r of res.data) {
+          const oldItems = r.items || [];
+          purchaseItemCount += oldItems.filter((it) => it.name === cleanOld).length;
+          const items = oldItems.map((it) =>
+            it.name === cleanOld ? { ...it, name: cleanNew } : it
+          );
+          await db.collection("purchases").doc(r._id).update({ data: { items } });
+          purchaseCount++;
+        }
+        offset += res.data.length;
+        if (res.data.length < pageSize) break;
+      }
+    }
+
+    // 4. 价格/数量历史（按 productId，可靠）
+    let priceHistoryCount = 0;
+    let quantityHistoryCount = 0;
+    const phC = (await db
+      .collection("priceHistory")
+      .where({ _openid: OPENID, productId })
+      .count()).total;
+    if (phC > 0) {
+      await db
+        .collection("priceHistory")
+        .where({ _openid: OPENID, productId })
+        .update({ data: { productName: cleanNew } });
+      priceHistoryCount = phC;
+    }
+    const qhC = (await db
+      .collection("quantityHistory")
+      .where({ _openid: OPENID, productId })
+      .count()).total;
+    if (qhC > 0) {
+      await db
+        .collection("quantityHistory")
+        .where({ _openid: OPENID, productId })
+        .update({ data: { productName: cleanNew } });
+      quantityHistoryCount = qhC;
+    }
+
+    return {
+      success: true,
+      changed: true,
+      reportCount,
+      reportItemCount,
+      purchaseCount,
+      purchaseItemCount,
+      priceHistoryCount,
+      quantityHistoryCount,
+    };
+  } catch (e) {
+    console.error("syncProductName error", e);
+    return { success: false, msg: e.errMsg || e.message };
+  }
+}
+
+// 返回「仍算已导入」的发票图片指纹集合。
+// 旧版：只要 recognitionJobs 里有这条记录（哪怕发票已被删除/清空回收站）就算已导入，
+//   导致重新导入同一张发票被拦截。现改为：只有该上传文件仍对应当前「未删除」的进货记录才算已导入，
+//   发票被删除并清空回收站后不再拦截，允许重新导入同一张发票。
+async function seenInvoiceDigests(OPENID) {
+  try {
+    const cmd = db.command;
+    // 1. 最近已完成/已确认任务里的图片指纹（fileID -> digest；一张图对应一个上传文件）
+    const res = await db
+      .collection("recognitionJobs")
+      .where({ _openid: OPENID, status: cmd.in(["done", "partial", "confirmed"]) })
+      .orderBy("createTime", "desc")
+      .limit(20)
+      .get();
+    const byFile = {};
+    (res.data || []).forEach((j) => {
+      const files = j.files || [];
+      const results = j.results || [];
+      files.forEach((f, i) => {
+        if (f && f.digest && f.fileID && results[i]) byFile[f.fileID] = f.digest;
+      });
+    });
+    const fileIDs = Object.keys(byFile);
+    if (!fileIDs.length) return { success: true, digests: [] };
+
+    // 2. 这些上传文件里，「仍存在且未删除」的进货记录对应哪些 fileID
+    const live = new Set();
+    const pageSize = 1000;
+    let offset = 0;
+    for (;;) {
+      const ids = fileIDs.slice(offset, offset + pageSize);
+      if (!ids.length) break;
+      const r = await db
+        .collection("purchases")
+        .where({
+          _openid: OPENID,
+          fileID: cmd.in(ids),
+          deleted: cmd.neq(true),
+        })
+        .field({ fileID: true })
+        .get();
+      (r.data || []).forEach((p) => {
+        if (p.fileID) live.add(p.fileID);
+      });
+      offset += ids.length;
+      if (offset >= fileIDs.length) break;
+    }
+
+    // 3. 只保留「进货记录仍存在」的指纹
+    const digests = [];
+    Object.keys(byFile).forEach((fid) => {
+      if (live.has(fid)) digests.push(byFile[fid]);
+    });
+    return { success: true, digests };
+  } catch (e) {
+    console.error("seenInvoiceDigests error", e);
+    return { success: true, digests: [] };
+  }
+}
+
+// 合并商品：把识别错名的商品(drop)并入已存在的正确名商品(keep)。
+// 合并单位库存、把 drop 的报表/价格历史/数量历史/进货引用全部改指到 keep，再软删除 drop 并清零其库存。
+async function mergeProduct(OPENID, event) {
+  const { keepId, dropId, keepName, dropName } = event;
+  if (!keepId || !dropId) return { success: false, msg: "缺少商品id" };
+  const keepNameClean = (keepName || "").trim();
+  const dropNameClean = (dropName || "").trim();
+  if (!keepNameClean) return { success: false, msg: "合并后名称不能为空" };
+
+  try {
+    const keepDoc = await db.collection("products").doc(keepId).get();
+    const dropDoc = await db.collection("products").doc(dropId).get();
+    const keep = keepDoc && keepDoc.data;
+    const drop = dropDoc && dropDoc.data;
+    if (!keep || !drop) return { success: false, msg: "商品不存在" };
+    // 归属校验
+    const keepOpenid = keep._openid || keep.openid;
+    const dropOpenid = drop._openid || drop.openid;
+    if (keepOpenid !== OPENID) return { success: false, msg: "无权限操作保留商品" };
+    if (dropOpenid !== OPENID) return { success: false, msg: "无权限操作合并商品" };
+    if (keep.deleted) return { success: false, msg: "保留商品已在回收站" };
+    if (drop.deleted) return { success: false, msg: "合并商品已在回收站" };
+
+    // 1. 合并单位（同名合并数量、保留 keep 的进/售价；不同名追加、用 drop 的进/售价）
+    const mergedUnits = ensureUnits(keep);
+    const dropUnits = ensureUnits(drop);
+    for (const du of dropUnits) {
+      const idx = mergedUnits.findIndex((u) => u.name === du.name);
+      if (idx >= 0) {
+        mergedUnits[idx] = { ...mergedUnits[idx], quantity: roundMoney(Number(mergedUnits[idx].quantity || 0) + Number(du.quantity || 0)) };
+      } else {
+        mergedUnits.push({
+          name: du.name,
+          costPrice: roundMoney(Number(du.costPrice || 0)),
+          sellPrice: roundMoney(Number(du.sellPrice || 0)),
+          quantity: roundMoney(Number(du.quantity || 0)),
+        });
+      }
+    }
+    const updateData = {
+      units: mergedUnits,
+      unit: mergedUnits[0].name,
+      costPrice: roundMoney(Number(mergedUnits[0].costPrice || 0)),
+      sellPrice: roundMoney(Number(mergedUnits[0].sellPrice || 0)),
+      quantity: roundMoney(Number(mergedUnits[0].quantity || 0)),
+      supplier: keep.supplier || "",
+      name: keepNameClean,
+      updateTime: db.serverDate(),
+    };
+    await db.collection("products").doc(keepId).update({ data: updateData });
+
+    // 2. 报表：productId 为 dropId 的项改指 keep
+    let reportCount = 0;
+    {
+      let offset = 0;
+      const pageSize = 100;
+      for (;;) {
+        const res = await db
+          .collection("reports")
+          .where({ _openid: OPENID, "items.productId": dropId })
+          .skip(offset)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        for (const r of res.data) {
+          const items = (r.items || []).map((it) =>
+            it.productId === dropId ? { ...it, productId: keepId, name: keepNameClean } : it
+          );
+          await db.collection("reports").doc(r._id).update({ data: { items } });
+          reportCount++;
+        }
+        offset += res.data.length;
+        if (res.data.length < pageSize) break;
+      }
+    }
+
+    // 3. 价格历史：productId 为 dropId 的改指 keep（批量）
+    let priceHistoryCount = 0;
+    if (dropNameClean) {
+      const phC = (await db.collection("priceHistory").where({ _openid: OPENID, productId: dropId }).count()).total;
+      if (phC > 0) {
+        await db
+          .collection("priceHistory")
+          .where({ _openid: OPENID, productId: dropId })
+          .update({ data: { productId: keepId, productName: keepNameClean } });
+        priceHistoryCount = phC;
+      }
+    }
+
+    // 4. 数量历史：productId 为 dropId 的改指 keep（批量，保证 rebuildQuantity 合计数=合并后库存）
+    let quantityHistoryCount = 0;
+    if (dropNameClean) {
+      const qhC = (await db.collection("quantityHistory").where({ _openid: OPENID, productId: dropId }).count()).total;
+      if (qhC > 0) {
+        await db
+          .collection("quantityHistory")
+          .where({ _openid: OPENID, productId: dropId })
+          .update({ data: { productId: keepId, productName: keepNameClean } });
+        quantityHistoryCount = qhC;
+      }
+    }
+
+    // 5. 进货明细：name 为 dropName 的项改为 keepName（仿 syncProductName 按旧名匹配）
+    let purchaseCount = 0;
+    if (dropNameClean) {
+      let offset = 0;
+      const pageSize = 100;
+      for (;;) {
+        const res = await db
+          .collection("purchases")
+          .where({ _openid: OPENID, "items.name": dropNameClean })
+          .skip(offset)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        for (const r of res.data) {
+          const items = (r.items || []).map((it) =>
+            it.name === dropNameClean ? { ...it, name: keepNameClean } : it
+          );
+          await db.collection("purchases").doc(r._id).update({ data: { items } });
+          purchaseCount++;
+        }
+        offset += res.data.length;
+        if (res.data.length < pageSize) break;
+      }
+    }
+
+    // 6. 软删除 drop：改名、清零库存，避免从回收站恢复时重复计库存
+    await db.collection("products").doc(dropId).update({
+      data: {
+        deleted: true,
+        deleteTime: db.serverDate(),
+        name: keepNameClean,
+        quantity: 0,
+        units: dropUnits.map((u) => ({ ...u, quantity: 0 })),
+      },
+    });
+
+    return {
+      success: true,
+      keepId,
+      dropId,
+      reportCount,
+      priceHistoryCount,
+      quantityHistoryCount,
+      purchaseCount,
+    };
+  } catch (e) {
+    console.error("mergeProduct error", e);
     return { success: false, msg: e.errMsg || e.message };
   }
 }

@@ -24,6 +24,32 @@
   border-color: #07c160;
 }
 
+.rebuild-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 24rpx;
+}
+
+.rebuild-btn {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 18rpx 0;
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.rebuild-tip {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
 .hist-card {
   margin-bottom: 16rpx;
 }

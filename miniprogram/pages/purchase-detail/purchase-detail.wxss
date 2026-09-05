@@ -124,6 +124,21 @@
   font-weight: 500;
 }
 
+/* 每行操作：重建数量（改名由「保存修改」统一处理） */
+.item-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.item-act.rebuild {
+  padding: 10rpx 24rpx;
+  font-size: 24rpx;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+  border-radius: 10rpx;
+}
+
 .add-row-btn {
   margin-bottom: 32rpx;
 }

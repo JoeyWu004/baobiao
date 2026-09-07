@@ -170,8 +170,8 @@
   <!-- 交互说明 -->
   <view class="add-hint">长按明细行可新增 / 编辑备注</view>
 
-  <!-- 底部合计 + 保存 -->
-  <view class="footer">
+  <!-- 底部合计 + 保存（弹层选商品时隐藏，避免误触） -->
+  <view class="footer" wx:if="{{!showPicker}}">
     <view class="footer-total">
       <text class="footer-label">合计金额</text>
       <text class="footer-amount">¥{{totalText}}</text>

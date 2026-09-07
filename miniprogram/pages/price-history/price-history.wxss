@@ -42,6 +42,37 @@
   color: #bbb;
 }
 
+/* 从最近报表同步售价 */
+.sync-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 24rpx;
+}
+
+.sync-btn {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 18rpx 0;
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 2rpx solid #ffd591;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.sync-disabled {
+  opacity: 0.6;
+}
+
+.sync-tip {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
 .filter-bar {
   display: flex;
   gap: 16rpx;
@@ -128,4 +159,43 @@
 .new {
   color: #fa5151;
   font-weight: 600;
+}
+
+/* 来源标签 / 可点击标识 */
+.history-source {
+  font-size: 22rpx;
+  color: #576b95;
+  background: #eceff8;
+  border-radius: 6rpx;
+  padding: 2rpx 12rpx;
+}
+
+.history-go {
+  font-size: 22rpx;
+  color: #576b95;
+}
+
+/* 补齐旧记录来源 */
+.backfill-wrap {
+  margin-bottom: 8rpx;
+}
+
+.backfill-btn {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 18rpx 0;
+  background: #eafaf0;
+  color: #07c160;
+  border: 2rpx solid #b7eccd;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.backfill-tip {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #bbb;
+  text-align: center;
 }

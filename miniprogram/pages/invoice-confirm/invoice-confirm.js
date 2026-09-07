@@ -288,6 +288,7 @@ Page({
               data: {
                 productId: p._id, productName: p.name, priceType: "cost",
                 oldPrice: oldCost, newPrice: costPrice, unit: unitName,
+                source: "invoice", purchaseId,
                 changeTime: db().serverDate(),
               },
             });
@@ -304,6 +305,7 @@ Page({
               data: {
                 productId: p._id, productName: p.name, priceType: "cost",
                 oldPrice: 0, newPrice: costPrice, unit: unitName,
+                source: "invoice", purchaseId,
                 changeTime: db().serverDate(),
               },
             });
@@ -322,7 +324,8 @@ Page({
             data: {
               productId: p._id, productName: p.name, delta: qtyAdd,
               after: target ? target.quantity : qtyAdd, source: "invoice",
-              unit: unitName, reportId: null, changeTime: db().serverDate(),
+              purchaseId, unit: unitName, reportId: null,
+              changeTime: db().serverDate(),
             },
           });
         }
@@ -342,6 +345,7 @@ Page({
             data: {
               productId: addRes._id, productName: name, priceType: "cost",
               oldPrice: 0, newPrice: costPrice, unit: unitName,
+              source: "invoice", purchaseId,
               changeTime: db().serverDate(),
             },
           });
@@ -350,8 +354,8 @@ Page({
           await db().collection("quantityHistory").add({
             data: {
               productId: addRes._id, productName: name, delta: qtyAdd,
-              after: qtyAdd, source: "invoice", unit: unitName,
-              reportId: null, changeTime: db().serverDate(),
+              after: qtyAdd, source: "invoice", purchaseId,
+              unit: unitName, reportId: null, changeTime: db().serverDate(),
             },
           });
         }

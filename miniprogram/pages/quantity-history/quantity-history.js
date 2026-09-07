@@ -2,7 +2,14 @@
 const { db, callReportOps } = require("../../utils/cloud");
 const { fmtDateTime, toDate } = require("../../utils/format");
 
-const SOURCE_MAP = { manual: "手动", invoice: "发票", report: "报表" };
+// purchase-edit（在进货明细里改数量）视作发票类；标签区分「发票/进货」，但都归「发票」筛选组、都可点进同一进货明细
+const SOURCE_MAP = { manual: "手动", invoice: "发票", report: "报表", "purchase-edit": "进货" };
+// 记录来源 → 所属筛选组
+const groupOf = (source) => {
+  if (source === "purchase-edit" || source === "invoice") return "invoice";
+  if (source === "report") return "report";
+  return "manual"; // manual 及未知来源
+};
 
 Page({
   data: {
@@ -36,16 +43,29 @@ Page({
       const list = res.data.map((h) => {
         const d = toDate(h.changeTime);
         const delta = Number(h.delta) || 0;
+        const source = h.source || "manual";
+        const group = groupOf(source);
+        const purchaseId = h.purchaseId || "";
+        const reportId = h.reportId || "";
         return {
           ...h,
+          source,
+          group,
+          sourceText: SOURCE_MAP[source] || h.source || "手动",
           timeText: d ? fmtDateTime(d) : "",
-          sourceText: SOURCE_MAP[h.source] || h.source || "手动",
           deltaText: (delta > 0 ? "+" : "") + delta,
           deltaClass: delta > 0 ? "up" : delta < 0 ? "down" : "",
-          afterText: Number(h.after),
+          // 补记的老记录没有当时库存值 → 显示 —
+          afterText: Number.isFinite(Number(h.after)) ? Number(h.after) : "—",
+          purchaseId,
+          reportId,
+          // 发票/进货需关联到进货记录、报表需 reportId 才能点击跳转
+          linkable: (group === "invoice" && !!purchaseId) || (group === "report" && !!reportId),
         };
       });
-      this.setData({ list });
+      // 待补齐关联的旧发票/进货记录数量（底部按钮由此显隐）
+      const pendingCount = list.filter((l) => l.group === "invoice" && !l.purchaseId).length;
+      this.setData({ list, pendingCount });
     } catch (e) {
       console.error("数量记录加载失败", e);
       wx.showToast({ title: "加载失败", icon: "none" });
@@ -83,6 +103,64 @@ Page({
             console.error("删除数量记录失败", err);
             wx.showToast({ title: "删除失败", icon: "none" });
           });
+      },
+    });
+  },
+
+  // 点击记录：发票/进货 → 对应进货明细页；报表 → 对应报表详情页
+  onCardTap(e) {
+    const ds = e.currentTarget.dataset || {};
+    const source = ds.source || "";
+    const purchaseId = ds.purchaseId || "";
+    const reportId = ds.reportId || "";
+    const group = groupOf(source);
+    if (group === "report") {
+      if (!reportId) {
+        wx.showToast({ title: "该记录未关联报表", icon: "none" });
+        return;
+      }
+      wx.navigateTo({ url: "/pages/report-detail/report-detail?id=" + reportId });
+    } else if (group === "invoice") {
+      if (!purchaseId) {
+        wx.showToast({ title: "未关联进货记录，可点下方按钮补齐", icon: "none" });
+        return;
+      }
+      wx.navigateTo({ url: "/pages/purchase-detail/purchase-detail?id=" + purchaseId });
+    }
+    // 手动记录无来源单据，不跳转
+  },
+
+  // 补齐发票/进货旧记录的 purchaseId：按 商品名+时间 就近匹配对应进货记录并写回
+  onLinkBackfill() {
+    const pid = this.data.productId;
+    if (!pid) return;
+    wx.showModal({
+      title: "补齐发票关联",
+      content:
+        "将读取本商品全部「发票/进货」来源、尚未关联的旧数量记录，按时间就近匹配对应进货记录并写入关联。\n\n" +
+        "匹配后这些记录点击即可打开对应进货明细。",
+      confirmColor: "#07c160",
+      success: async (res) => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: "匹配中…", mask: true });
+        try {
+          const r = await callReportOps("backfillQtyPurchase", { productId: pid });
+          const rr = r && r.result;
+          if (rr && rr.success) {
+            const msg = rr.total
+              ? `已关联 ${rr.matched} 条` + (rr.unmatched ? `，未匹配 ${rr.unmatched} 条` : "")
+              : "没有需要关联的记录";
+            wx.showToast({ title: msg, icon: "none" });
+            this.load();
+          } else {
+            wx.showToast({ title: (rr && rr.msg) || "补齐失败", icon: "none" });
+          }
+        } catch (e) {
+          console.error("补齐发票关联失败", e);
+          wx.showToast({ title: "补齐失败", icon: "none" });
+        } finally {
+          wx.hideLoading();
+        }
       },
     });
   },
@@ -135,7 +213,10 @@ Page({
       const res = await callReportOps("rebuildQuantity", { productId: pid, dryRun: false });
       const r = res.result;
       if (r && r.success) {
-        wx.showToast({ title: "已重建", icon: "success" });
+        wx.showToast({
+          title: r.addedLedger ? `已重建，补记${r.addedLedger}条出库` : "已重建",
+          icon: "success",
+        });
         this.load();
       } else {
         wx.showToast({ title: (r && r.msg) || "重建失败", icon: "none" });

@@ -190,8 +190,8 @@ Page({
           await db().collection("quantityHistory").add({
             data: {
               productId: addRes._id, productName: name, delta: now.qty,
-              after: now.qty, source: "purchase-edit", unit: unitName,
-              reportId: null, changeTime: db().serverDate(),
+              after: now.qty, source: "purchase-edit", purchaseId: this.purchaseId,
+              unit: unitName, reportId: null, changeTime: db().serverDate(),
             },
           });
         }
@@ -201,6 +201,7 @@ Page({
             data: {
               productId: addRes._id, productName: name, priceType: "cost",
               oldPrice: 0, newPrice: now.price, unit: unitName,
+              source: "purchase-edit", purchaseId: this.purchaseId,
               changeTime: db().serverDate(),
             },
           });
@@ -226,6 +227,7 @@ Page({
               data: {
                 productId: product._id, productName: name, priceType: "cost",
                 oldPrice: 0, newPrice: now.price, unit: unitName,
+                source: "purchase-edit", purchaseId: this.purchaseId,
                 changeTime: db().serverDate(),
               },
             });
@@ -234,8 +236,8 @@ Page({
             await db().collection("quantityHistory").add({
               data: {
                 productId: product._id, productName: name, delta: now.qty,
-                after: now.qty, source: "purchase-edit", unit: unitName,
-                reportId: null, changeTime: db().serverDate(),
+                after: now.qty, source: "purchase-edit", purchaseId: this.purchaseId,
+                unit: unitName, reportId: null, changeTime: db().serverDate(),
               },
             });
           }
@@ -254,8 +256,8 @@ Page({
             await db().collection("quantityHistory").add({
               data: {
                 productId: product._id, productName: name, delta: appliedDelta,
-                after, source: "purchase-edit", unit: unitName,
-                reportId: null, changeTime: db().serverDate(),
+                after, source: "purchase-edit", purchaseId: this.purchaseId,
+                unit: unitName, reportId: null, changeTime: db().serverDate(),
               },
             });
           }
@@ -270,7 +272,9 @@ Page({
           await db().collection("priceHistory").add({
             data: {
               productId: product._id, productName: name, priceType: "cost",
-              oldPrice, newPrice, unit: unitName, changeTime: db().serverDate(),
+              oldPrice, newPrice, unit: unitName,
+              source: "purchase-edit", purchaseId: this.purchaseId,
+              changeTime: db().serverDate(),
             },
           });
         }
@@ -511,16 +515,28 @@ Page({
   },
 
   // 用它开报表：把当前明细带过去开新报表
-  openReport() {
-    const goodsItems = (this.data.items || [])
-      .filter((it) => it.name && it.name.trim())
-      .map((it) => ({
+  // 进货明细不带 productId，按商品名查一次商品库补上，让报表改价能同步到商品售价/价格历史、库存能正确扣减
+  async openReport() {
+    const goodsItems = [];
+    for (const it of this.data.items || []) {
+      const name = (it.name || "").trim();
+      if (!name) continue;
+      let productId = "";
+      try {
+        const prod = await this.findProductByName(name);
+        if (prod) productId = prod._id;
+      } catch (e) {
+        // 查询失败则保持空，服务端保存时会再次按名补齐
+      }
+      goodsItems.push({
         type: "goods",
-        name: it.name.trim(),
+        productId,
+        name,
         unit: it.unit || "个",
         price: Number(it.price) || 0,
         quantity: Number(it.quantity) || 0,
-      }));
+      });
+    }
     if (!goodsItems.length) {
       wx.showToast({ title: "没有可用的明细", icon: "none" });
       return;

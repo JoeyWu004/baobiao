@@ -9,6 +9,15 @@
     </view>
   </view>
 
+  <!-- 从最近报表同步售价 -->
+  <view class="sync-bar" wx:if="{{productId}}">
+    <view
+      class="sync-btn {{syncing ? 'sync-disabled' : ''}}"
+      bindtap="onSyncPrice"
+    >同步最近售价</view>
+    <view class="sync-tip">把最近一次报表售价同步到本商品售价，并补一条价格历史</view>
+  </view>
+
   <!-- 筛选：全部 / 售价 / 进价 -->
   <view class="filter-bar">
     <view
@@ -35,6 +44,10 @@
     wx:key="_id"
     wx:if="{{filter === 'all' || item.priceType === filter}}"
     data-id="{{item._id}}"
+    data-source="{{item.source}}"
+    data-purchase-id="{{item.purchaseId}}"
+    data-report-id="{{item.reportId}}"
+    bindtap="onCardTap"
     bindlongpress="onDeleteRecord"
   >
     <view class="history-top">
@@ -42,6 +55,8 @@
       <view class="history-tags">
         <text class="history-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
         <text class="history-type {{item.typeClass}}">{{item.typeLabel}}</text>
+        <text class="history-source" wx:if="{{item.sourceText}}">{{item.sourceText}}</text>
+        <text class="history-go" wx:if="{{item.linkable}}">查看 ›</text>
       </view>
     </view>
     <view class="history-change">
@@ -51,9 +66,15 @@
     </view>
   </view>
 
+  <!-- 补齐旧记录来源 -->
+  <view class="backfill-wrap" wx:if="{{pendingCount > 0}}">
+    <view class="backfill-btn" bindtap="onBackfillLinks">补齐价格来源</view>
+    <view class="backfill-tip">{{pendingCount}} 条记录尚未标注来源，点击可按时间就近匹配报表/进货</view>
+  </view>
+
   <view class="empty" wx:if="{{!loading && list.length === 0}}">暂无价格变动记录</view>
   <view wx:if="{{loading}}" class="empty">加载中…</view>
 
   <!-- 交互说明 -->
-  <view class="hist-hint" wx:if="{{list.length > 0}}">长按记录可删除</view>
+  <view class="hist-hint" wx:if="{{list.length > 0}}">点击报表/发票/进货引起的价格变化可查看来源；长按记录可删除</view>
 </view>

@@ -10,6 +10,17 @@ function pathStartsWith(arr, prefix) {
   return true;
 }
 
+// 分类匹配：兼容商品只存了叶子分类名（如 ["指纹锁"]）、树里是完整路径（如 ["智能锁","指纹锁"]）的情况。
+// 满足其一即命中：① 短路径正好是长路径从头开始的前缀（商品在点击分类的子树里）；② 短路径正好是长路径的结尾。
+function catMatch(cp, np) {
+  if (!Array.isArray(cp) || !cp.length || !Array.isArray(np) || !np.length) return false;
+  const longer = cp.length >= np.length ? cp : np;
+  const shorter = cp.length >= np.length ? np : cp;
+  if (shorter.every((x, i) => x === longer[i])) return true; // 前缀
+  const start = longer.length - shorter.length;
+  return shorter.every((x, i) => x === longer[start + i]); // 结尾
+}
+
 Page({
   data: {
     nodes: [], // 可见的扁平节点（含缩进深度）
@@ -75,15 +86,32 @@ Page({
     const node = (this._nodes || []).find((n) => n._id === id);
     if (!node) return;
     try {
-      const prodRes = await db().collection("products").limit(100).get();
-      const matched = prodRes.data.filter((p) => {
+      // 翻页取全（小程序端单次最多 20 条；含回收站文档也要跳过，避免漏判）
+      const all = [];
+      {
+        const pageSize = 20;
+        let offset = 0;
+        for (;;) {
+          const res = await db()
+            .collection("products")
+            .orderBy("createTime", "desc")
+            .skip(offset)
+            .limit(pageSize)
+            .get();
+          if (!res.data || res.data.length === 0) break;
+          all.push(...res.data);
+          offset += res.data.length;
+          if (res.data.length < pageSize) break;
+        }
+      }
+      const matched = all.filter((p) => {
         if (p.deleted) return false; // 回收站里的商品不计入
         const cp = Array.isArray(p.categoryPath)
           ? p.categoryPath
           : p.category
             ? [p.category]
             : [];
-        return pathStartsWith(cp, node.path);
+        return catMatch(cp, node.path);
       });
       if (matched.length === 0) {
         wx.showToast({ title: "该分类暂无商品", icon: "none" });

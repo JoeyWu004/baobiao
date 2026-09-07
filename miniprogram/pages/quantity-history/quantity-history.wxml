@@ -16,8 +16,12 @@
     class="card hist-card"
     wx:for="{{list}}"
     wx:key="_id"
-    wx:if="{{filter === 'all' || item.source === filter}}"
+    wx:if="{{filter === 'all' || item.group === filter}}"
     data-id="{{item._id}}"
+    data-source="{{item.source}}"
+    data-purchase-id="{{item.purchaseId}}"
+    data-report-id="{{item.reportId}}"
+    bindtap="onCardTap"
     bindlongpress="onDeleteRecord"
   >
     <view class="hist-top">
@@ -25,6 +29,7 @@
       <view class="hist-tags">
         <text class="hist-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
         <text class="hist-source">{{item.sourceText}}</text>
+        <text class="hist-go" wx:if="{{item.linkable}}">查看 ›</text>
       </view>
     </view>
     <view class="hist-change">
@@ -34,9 +39,15 @@
     </view>
   </view>
 
+  <!-- 补齐旧发票/进货记录关联 -->
+  <view class="backfill-wrap" wx:if="{{pendingCount > 0}}">
+    <view class="backfill-btn" bindtap="onLinkBackfill">补齐发票关联</view>
+    <view class="backfill-tip">{{pendingCount}} 条发票/进货记录未关联进货明细，点击可按时间就近匹配，之后点记录可直达来源</view>
+  </view>
+
   <view class="empty" wx:if="{{!loading && list.length === 0}}">暂无数量变动记录</view>
   <view wx:if="{{loading}}" class="empty">加载中…</view>
 
   <!-- 交互说明 -->
-  <view class="hist-hint" wx:if="{{list.length > 0}}">长按记录可删除</view>
+  <view class="hist-hint" wx:if="{{list.length > 0}}">点击发票/进货/报表记录可查看来源；长按可删除</view>
 </view>

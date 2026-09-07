@@ -244,6 +244,7 @@ Page({
             oldPrice: 0,
             newPrice: u.costPrice,
             unit: u.name,
+            source: "manual",
             changeTime: db().serverDate(),
           },
         });
@@ -298,6 +299,7 @@ Page({
           priceChanges.push({
             productId: id, productName: data.name, priceType: "cost",
             oldPrice: ou.costPrice, newPrice: nu.costPrice, unit: nu.name,
+            source: "manual",
             changeTime: db().serverDate(),
           });
         }
@@ -305,6 +307,7 @@ Page({
           priceChanges.push({
             productId: id, productName: data.name, priceType: "sell",
             oldPrice: ou.sellPrice, newPrice: nu.sellPrice, unit: nu.name,
+            source: "manual",
             changeTime: db().serverDate(),
           });
         }
@@ -321,6 +324,7 @@ Page({
           priceChanges.push({
             productId: id, productName: data.name, priceType: "cost",
             oldPrice: 0, newPrice: nu.costPrice, unit: nu.name,
+            source: "manual",
             changeTime: db().serverDate(),
           });
         }

@@ -242,6 +242,8 @@ exports.main = async (event) => {
       return restoreReport(OPENID, event);
     case "purgeReport":
       return purgeReport(OPENID, event);
+    case "purgePurchase":
+      return purgePurchase(OPENID, event);
     case "purgeAllTrash":
       return purgeAllTrash(OPENID, event);
     case "restoreAllTrash":
@@ -756,6 +758,348 @@ async function purgeReport(OPENID, event) {
   }
 }
 
+// ---------- 彻底删除进货记录（发票）：数量 / 进价作废 ----------
+
+// 商品有效单位归一化工厂（与 recomputeQtyByUnit 的 norm、applyStockDelta 同口径）
+function normUnitFactory(product) {
+  const validUnits =
+    Array.isArray(product.units) && product.units.length
+      ? product.units.map((u) => (u.name || "").trim()).filter(Boolean)
+      : [(product.unit || "个").trim()];
+  const defaultUnit = validUnits[0] || "个";
+  return (u) => {
+    const nu = (u || "").trim() || "个";
+    return validUnits.includes(nu) ? nu : defaultUnit;
+  };
+}
+
+// 批量查这些进货记录 id 里哪些仍存在于 purchases（回收站里的也算存在：软删不作废）
+async function findExistingPurchaseIds(OPENID, ids) {
+  const set = new Set();
+  const uniq = [...new Set((ids || []).filter(Boolean))];
+  const cmd = db.command;
+  for (let i = 0; i < uniq.length; i += 100) {
+    const chunk = uniq.slice(i, i + 100);
+    try {
+      const res = await db
+        .collection("purchases")
+        .where({ _openid: OPENID, _id: cmd.in(chunk) })
+        .limit(100)
+        .get();
+      (res.data || []).forEach((p) => set.add(p._id));
+    } catch (e) {
+      // 查不到就按「都存在」处理：宁可少回退一次进价，也不要把进价误写成 0
+      chunk.forEach((id) => set.add(id));
+    }
+  }
+  return set;
+}
+
+// 该发票当初给某商品入库的数量（按单位）。
+// 主口径 = 发票行按商品名匹配 + 单位归一化，与 recomputeQtyByUnit ① 段逐行同构 ——
+//   库存是按源单据重算的（不是回放流水），只有同构才能保证彻底删除后点「重建数量记录」不跳变。
+// 兜底 = 残留 quantityHistory 的 delta 之和，用于商品名与发票行名对不上的老数据。
+async function purchaseVoidQty(OPENID, purchase, product) {
+  const norm = normUnitFactory(product);
+  const name = (product.name || "").trim();
+  const byItems = {};
+  for (const it of purchase.items || []) {
+    // 与 recomputeQtyByUnit ① 段用完全相同的比较（那边也是 it.name === 去空格的商品名），
+    // 逐行同构才能保证彻底删除后点「重建数量记录」库存不跳变
+    if (it.name !== name) continue;
+    const un = norm(it.unit);
+    byItems[un] = roundMoney((byItems[un] || 0) + roundMoney(Number(it.quantity) || 0));
+  }
+  if (Object.keys(byItems).length) return { qtyByUnit: byItems, from: "items" };
+
+  const cmd = db.command;
+  const byHist = {};
+  const pageSize = 100;
+  let offset = 0;
+  for (;;) {
+    const res = await db
+      .collection("quantityHistory")
+      .where({
+        _openid: OPENID,
+        purchaseId: purchase._id,
+        productId: product._id,
+        source: cmd.in(["invoice", "purchase-edit"]),
+      })
+      .skip(offset)
+      .limit(pageSize)
+      .get();
+    if (!res.data || res.data.length === 0) break;
+    for (const h of res.data) {
+      const un = norm(h.unit);
+      byHist[un] = roundMoney((byHist[un] || 0) + roundMoney(Number(h.delta) || 0));
+    }
+    offset += res.data.length;
+    if (res.data.length < pageSize) break;
+  }
+  return { qtyByUnit: byHist, from: "history" };
+}
+
+// 进价回退：把该发票写下的、且仍是当前进价的那些单位，回退到上一条有效进价。
+// 门槛（防误改）：该 (商品,单位) 时间线最新一条 cost 记录必须属于本发票，且其 newPrice 就是商品当前进价；
+//   否则说明后来有别的单据或手动改过价 → 保持不动。
+// 有效 = 没有 purchaseId（手动录入），或它关联的进货记录仍在 purchases 里（回收站也算，软删不作废）。
+async function rollbackCostUnits(OPENID, purchaseId, product, units) {
+  let recs = [];
+  try {
+    const res = await db
+      .collection("priceHistory")
+      .where({ _openid: OPENID, productId: product._id, priceType: "cost" })
+      .orderBy("changeTime", "desc")
+      .limit(100)
+      .get();
+    recs = res.data || [];
+  } catch (e) {
+    console.error("读取进价历史失败", e.errMsg || e.message);
+    return { units, list: [] };
+  }
+  if (!recs.length) return { units, list: [] };
+
+  const byUnit = {};
+  recs.forEach((h) => {
+    const un = (h.unit || "").trim();
+    if (!byUnit[un]) byUnit[un] = [];
+    byUnit[un].push(h);
+  });
+
+  const out = units.slice();
+  const list = [];
+  const aliveIds = await findExistingPurchaseIds(
+    OPENID,
+    recs.map((h) => h.purchaseId).filter((id) => id && id !== purchaseId)
+  );
+
+  Object.keys(byUnit).forEach((un) => {
+    const rows = byUnit[un]; // 已按 changeTime desc
+    const idx = out.findIndex((u) => u.name === un);
+    if (idx < 0) return;
+    const cur = roundMoney(Number(out[idx].costPrice) || 0);
+    if (rows[0].purchaseId !== purchaseId) return; // 当前进价不是本发票写下的 → 不动
+    if (Math.abs(cur - roundMoney(Number(rows[0].newPrice) || 0)) > 0.001) return; // 已被他处改动 → 不动
+    // 本发票的全部记录都要排除，否则会把发票自己更早的一条当成「上一条有效进价」
+    const valid = rows.find(
+      (h) => h.purchaseId !== purchaseId && (!h.purchaseId || aliveIds.has(h.purchaseId))
+    );
+    const target = valid ? roundMoney(Number(valid.newPrice) || 0) : 0;
+    if (Math.abs(cur - target) < 0.001) return;
+    out[idx] = { ...out[idx], costPrice: target };
+    list.push({ unit: un, from: cur, to: target });
+  });
+
+  return { units: out, list };
+}
+
+// 组装「彻底删除该发票」的作废计划：事务外读齐素材并算好每个商品的新 units，事务内只写。
+// 受影响商品优先取残留数量历史里的 productId（那是发票当初真正写过的商品），
+// 发票行名未被历史覆盖时再按商品名查库（与 recomputeQtyByUnit 的按名匹配同口径）。
+async function buildPurchaseVoidPlans(OPENID, purchase) {
+  const cmd = db.command;
+  const affected = []; // { productId, name }
+  const seen = {};
+  const coveredNames = {};
+
+  // ① 残留数量历史里的商品（可靠 id）
+  let offset = 0;
+  for (;;) {
+    const res = await db
+      .collection("quantityHistory")
+      .where({
+        _openid: OPENID,
+        purchaseId: purchase._id,
+        source: cmd.in(["invoice", "purchase-edit"]),
+      })
+      .skip(offset)
+      .limit(100)
+      .get();
+    if (!res.data || res.data.length === 0) break;
+    for (const h of res.data) {
+      const nm = (h.productName || "").trim();
+      if (nm) coveredNames[nm] = true;
+      if (!h.productId || seen[h.productId]) continue;
+      seen[h.productId] = true;
+      affected.push({ productId: h.productId, name: nm });
+    }
+    offset += res.data.length;
+    if (res.data.length < 100) break;
+  }
+
+  // ② 发票行里的商品名（历史没覆盖到的）
+  const names = [
+    ...new Set((purchase.items || []).map((it) => (it.name || "").trim()).filter(Boolean)),
+  ];
+  for (const name of names) {
+    if (coveredNames[name]) continue;
+    let pid = "";
+    try {
+      // 先找未软删的；商品在回收站里也照常回退（库存仍在，恢复后应体现作废结果）
+      const res = await db
+        .collection("products")
+        .where({ _openid: OPENID, name, deleted: cmd.neq(true) })
+        .limit(1)
+        .get();
+      pid = (res.data[0] || {})._id || "";
+      if (!pid) {
+        const res2 = await db
+          .collection("products")
+          .where({ _openid: OPENID, name })
+          .limit(1)
+          .get();
+        pid = (res2.data[0] || {})._id || "";
+      }
+    } catch (e) {
+      pid = "";
+    }
+    if (pid && !seen[pid]) {
+      seen[pid] = true;
+      affected.push({ productId: pid, name });
+    }
+  }
+
+  // 逐商品算数量回退 + 进价回退，合成一份 units 更新
+  const plans = [];
+  for (const a of affected) {
+    let product = null;
+    try {
+      product = (await db.collection("products").doc(a.productId).get()).data;
+    } catch (e) {
+      product = null;
+    }
+    if (!product) continue; // 商品已彻底删除：无库存可回退
+
+    const { qtyByUnit, from } = await purchaseVoidQty(OPENID, purchase, product);
+    const units = ensureUnits(product);
+    const qtyDetail = [];
+    const warnings = [];
+    let changed = false;
+
+    for (const un of Object.keys(qtyByUnit)) {
+      const q = roundMoney(qtyByUnit[un]);
+      if (!q) continue;
+      const idx = units.findIndex((u) => u.name === un);
+      if (idx < 0) {
+        // 单位已被手动改掉：跳过，避免凭空造单位（与 applyStockDelta 的保守取向一致）
+        warnings.push(`单位「${un}」已不在商品上，跳过 ${q}`);
+        continue;
+      }
+      const before = roundMoney(Number(units[idx].quantity) || 0);
+      const after = roundMoney(before - q); // 库存允许为负，不夹取 0（夹取会破坏重算一致性）
+      units[idx] = { ...units[idx], quantity: after };
+      qtyDetail.push({ unit: un, before, delta: -q, after, from });
+      changed = true;
+    }
+
+    const cost = await rollbackCostUnits(OPENID, purchase._id, product, units);
+    if (cost.list.length) changed = true;
+    if (!changed) continue;
+
+    const def = cost.units[0] || {};
+    plans.push({
+      productId: a.productId,
+      name: product.name,
+      updateData: {
+        units: cost.units,
+        unit: def.name || product.unit || "个",
+        quantity: roundMoney(Number(def.quantity) || 0), // 顶层镜像 = units[0]
+        costPrice: roundMoney(Number(def.costPrice) || 0),
+        sellPrice: roundMoney(Number(def.sellPrice) || 0),
+        updateTime: db.serverDate(),
+      },
+      qty: qtyDetail,
+      cost: cost.list,
+      warnings,
+    });
+  }
+  return plans;
+}
+
+// 彻底删除进货记录（发票）：物理移除文档，并把该发票当初入库的数量从商品库存扣回、
+// 进价回退到上一条有效进价（用户口径：作废不补负向数量记录，直接扣回）。
+// 关键约定：残留的 quantityHistory / priceHistory 一律保留不删 ——
+//   它们是「来源页 / 数量页 / 价格页」渲染「发票已删除」灰行的唯一残留依据。
+async function purgePurchase(OPENID, event) {
+  const { purchaseId } = event || {};
+  if (!purchaseId) return { success: false, msg: "缺少 purchaseId" };
+
+  // ① 事务外读单据（事务内不支持 where 查询；归属校验照抄 findOwnedReport 范式）
+  let purchase = null;
+  try {
+    purchase = (await db.collection("purchases").doc(purchaseId).get()).data;
+  } catch (e) {
+    purchase = null;
+  }
+  // 已不存在：视为已作废（幂等），绝不重复回退数量
+  if (!purchase) return { success: true, alreadyPurged: true };
+  if (purchase._openid !== OPENID && purchase.openid !== OPENID) {
+    return { success: false, msg: "进货记录不存在或无权操作" };
+  }
+
+  try {
+    // ② 事务外算好全部计划（读商品、读历史、算新 units）
+    const plans = await buildPurchaseVoidPlans(OPENID, purchase);
+
+    // ③ 事务内：存在性守卫 + 物理删除 + 逐商品写回（值全部来自事务外）
+    let removed = false;
+    await db.runTransaction(async (t) => {
+      let still = null;
+      try {
+        still = (await t.collection("purchases").doc(purchaseId).get()).data;
+      } catch (e) {
+        still = null;
+      }
+      if (!still) return; // 已被并发/重复提交删除：本次不再回退，事务正常提交
+      await t.collection("purchases").doc(purchaseId).remove();
+      for (const pl of plans) {
+        await t.collection("products").doc(pl.productId).update({ data: pl.updateData });
+      }
+      removed = true;
+    });
+
+    return {
+      success: true,
+      purged: removed,
+      alreadyPurged: !removed,
+      productCount: plans.length,
+      detail: plans.map((p) => ({
+        productId: p.productId,
+        name: p.name,
+        qty: p.qty,
+        cost: p.cost,
+        warnings: p.warnings,
+      })),
+    };
+  } catch (e) {
+    console.error("purgePurchase error", e);
+    return { success: false, msg: e.errMsg || e.message };
+  }
+}
+
+// 清空回收站里的进货记录：逐条走 purgePurchase（物理删除 + 数量/进价作废）
+async function purgeAllPurchases(OPENID) {
+  let removed = 0;
+  for (;;) {
+    const res = await db
+      .collection("purchases")
+      .where({ _openid: OPENID, deleted: true })
+      .limit(100)
+      .get();
+    if (!res.data || res.data.length === 0) break;
+    let done = 0;
+    for (const doc of res.data) {
+      const r = await purgePurchase(OPENID, { purchaseId: doc._id });
+      if (r && r.success) {
+        done++; // 已不存在的（别人删掉了）也算本轮有推进——它不会再出现在下轮查询里
+        if (r.purged) removed++;
+      }
+    }
+    if (!done) break; // 防死循环：本轮一条都没删掉（例如每条都失败）就退出
+  }
+  return removed;
+}
+
 // 按条件分批删光（循环查-删，兼容数量超过单次 limit 的情况）
 async function removeAllByQuery(collectionName, cond) {
   let removed = 0;
@@ -774,7 +1118,9 @@ async function removeAllByQuery(collectionName, cond) {
 // 仍被报表引用的商品跳过（含回收站里的报表，避免恢复报表时丢失重建数据）
 async function purgeProducts(OPENID) {
   let removed = 0;
-  let skipped = 0;
+  // 用 Set 而不是计数器：被引用的商品会在多轮里反复出现，计数器会重复累加、
+  // 让客户端那句「N 个商品被报表引用未删」虚高
+  const skippedIds = new Set();
   for (;;) {
     const res = await db
       .collection("products")
@@ -782,6 +1128,7 @@ async function purgeProducts(OPENID) {
       .limit(100)
       .get();
     if (!res.data || res.data.length === 0) break;
+    let done = 0; // 本轮真正删掉的条数
     for (const doc of res.data) {
       const pid = doc._id;
       // 查引用失败时按无引用处理，不阻塞清空
@@ -796,16 +1143,21 @@ async function purgeProducts(OPENID) {
         referenced = false;
       }
       if (referenced) {
-        skipped++;
+        skippedIds.add(pid);
         continue;
       }
       await removeAllByQuery("priceHistory", { productId: pid });
       await removeAllByQuery("quantityHistory", { productId: pid });
       await db.collection("products").doc(pid).remove();
       removed++;
+      done++;
     }
+    // 防死循环：被报表引用的商品永远留在结果集里，若本轮一条都没删掉（整批全被引用），
+    // 下一轮查询结果完全相同 → 无限重查直到云函数超时。而 purgeAllTrash 是先删报表和进货、
+    // 最后才删商品，超时会让它整体返回 success:false —— 用户看到「清空失败」，数据却已经清了。
+    if (!done) break;
   }
-  return { removed, skipped };
+  return { removed, skipped: skippedIds.size };
 }
 
 // 清空回收站：默认删除全部已删除的 报表 + 进货记录 + 商品；
@@ -821,7 +1173,8 @@ async function purgeAllTrash(OPENID, event) {
       removedReports = await removeAllByQuery("reports", { _openid: OPENID, deleted: true });
     }
     if (filter === "all" || filter === "purchase") {
-      removedPurchases = await removeAllByQuery("purchases", { _openid: OPENID, deleted: true });
+      // 逐条走 purgePurchase：物理删除的同时把数量/进价作废（不能裸删，否则库存与账目对不上）
+      removedPurchases = await purgeAllPurchases(OPENID);
     }
     if (filter === "all" || filter === "product") {
       const p = await purgeProducts(OPENID);
@@ -1742,6 +2095,8 @@ async function rebuildSource(OPENID, event) {
 
     let candidate;
     let hasPurchase = !!earliest;
+    // "" = 有可推导的进货记录，可以写；否则值表示「保持现状」的原因，此时不写库
+    let reason = "";
     if (earliest) {
       // invoice 导入的进货记录带 fileID，其余为手动录入的进货
       candidate = {
@@ -1750,6 +2105,19 @@ async function rebuildSource(OPENID, event) {
         date: earliest.date || "",
         supplier: earliest.supplier || "",
       };
+    } else if (current && current.purchaseId) {
+      // 找不到存活的进货记录，但商品本来就记录了来源发票 —— 那张发票要么在回收站、
+      // 要么已被彻底删除（上面的查询跳过了 deleted，彻底删的直接查不到）。
+      // 这时**不能**改写成「手动录入」：会丢掉「它来自一张发票」这个事实，
+      // supplier/date 也一起丢，而且擦掉 purchaseId 会让来源页的「发票已删除」标注消失。
+      // 保持现状即可，信息（供应商/日期）本来就在 current 里。
+      candidate = current;
+      try {
+        const p = (await db.collection("purchases").doc(current.purchaseId).get()).data;
+        reason = p && p.deleted === true ? "trash" : "alive";
+      } catch (e) {
+        reason = "gone";
+      }
     } else {
       candidate = {
         type: "manual",
@@ -1760,12 +2128,15 @@ async function rebuildSource(OPENID, event) {
     }
 
     if (dryRun) {
-      return { success: true, current, candidate, hasPurchase };
+      return { success: true, current, candidate, hasPurchase, reason };
     }
-    await db.collection("products").doc(productId).update({
-      data: { source: candidate, updateTime: db.serverDate() },
-    });
-    return { success: true, current, candidate, hasPurchase };
+    // 保持现状的情况不写库（candidate 与 current 相同，写只会动 updateTime）
+    if (!reason) {
+      await db.collection("products").doc(productId).update({
+        data: { source: candidate, updateTime: db.serverDate() },
+      });
+    }
+    return { success: true, current, candidate, hasPurchase, reason };
   } catch (e) {
     console.error("rebuildSource error", e);
     return { success: false, msg: e.errMsg || e.message };

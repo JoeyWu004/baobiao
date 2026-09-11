@@ -157,3 +157,15 @@
   font-size: 36rpx;
   color: #ccc;
 }
+
+/* 发票在回收站 / 已彻底删除：整行灰化 + 灰色状态标签 */
+.src-row.row-trash,
+.src-row.row-voided {
+  opacity: 0.55;
+  background: #fafafa;
+}
+
+.src-tag-status {
+  color: #888;
+  border-color: #ccc;
+}

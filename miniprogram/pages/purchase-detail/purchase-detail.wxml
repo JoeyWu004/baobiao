@@ -2,16 +2,28 @@
 <view class="page">
   <view class="empty" wx:if="{{loading}}">加载中…</view>
 
+  <!-- 被彻底删除的发票：原来这种情况是白屏 -->
+  <view class="empty" wx:if="{{!loading && missing}}">
+    该进货记录已被彻底删除
+    <view class="empty-btn" bindtap="goBack">返回</view>
+  </view>
+
   <block wx:if="{{purchase}}">
+    <!-- 回收站里的发票：只读 -->
+    <view class="trash-banner" wx:if="{{inTrash}}">
+      <text class="trash-text">该发票在回收站中，恢复后才能编辑；彻底删除会扣回库存并回退进价。</text>
+      <text class="trash-link" bindtap="goTrash">去回收站</text>
+    </view>
+
     <view class="card head-card">
       <view class="model-tag" wx:if="{{modelLabel}}">识别模型：{{modelLabel}}</view>
       <view class="head-row">
         <text class="head-label">供应商</text>
-        <input class="input-box" placeholder="供应商名称" value="{{purchase.supplier}}" bindinput="onSupplierInput" />
+        <input class="input-box" placeholder="供应商名称" value="{{purchase.supplier}}" disabled="{{readonly}}" bindinput="onSupplierInput" />
       </view>
       <view class="head-row">
         <text class="head-label">日期</text>
-        <picker mode="date" value="{{purchase.date}}" bindchange="onDateChange">
+        <picker mode="date" value="{{purchase.date}}" disabled="{{readonly}}" bindchange="onDateChange">
           <view class="date-value">{{purchase.date}}</view>
         </picker>
       </view>
@@ -40,24 +52,26 @@
               data-index="{{index}}"
               bindinput="onItemInput"
             />
-            <view class="item-del" data-index="{{index}}" bindtap="removeItem">×</view>
+            <view class="item-del" wx:if="{{!readonly}}" data-index="{{index}}" bindtap="removeItem">×</view>
           </view>
-          <input class="item-input unit" placeholder="单位" value="{{item.unit}}" data-field="unit" data-index="{{index}}" bindinput="onItemInput" />
-          <input class="item-input qty" type="digit" value="{{item.quantity}}" data-field="quantity" data-index="{{index}}" bindinput="onItemInput" />
-          <input class="item-input price" type="digit" value="{{item.price}}" data-field="price" data-index="{{index}}" bindinput="onItemInput" />
+          <input class="item-input unit" placeholder="单位" value="{{item.unit}}" disabled="{{readonly}}" data-field="unit" data-index="{{index}}" bindinput="onItemInput" />
+          <input class="item-input qty" type="digit" value="{{item.quantity}}" disabled="{{readonly}}" data-field="quantity" data-index="{{index}}" bindinput="onItemInput" />
+          <input class="item-input price" type="digit" value="{{item.price}}" disabled="{{readonly}}" data-field="price" data-index="{{index}}" bindinput="onItemInput" />
           <text class="item-amount">¥{{item.amountText}}</text>
         </view>
       </view>
     </view>
 
-    <button class="btn-plain add-row-btn" bindtap="addItem">＋ 添加一行</button>
+    <button class="btn-plain add-row-btn" wx:if="{{!readonly}}" bindtap="addItem">＋ 添加一行</button>
 
     <view class="card img-card" wx:if="{{imageUrl}}">
       <view class="img-title">发票原图</view>
       <image class="inv-img" src="{{imageUrl}}" mode="widthFix" bindtap="previewImg" data-src="{{imageUrl}}" />
     </view>
 
-    <button class="btn-primary save-btn" bindtap="onSave">{{saving ? '保存中…' : '保存修改'}}</button>
-    <button class="btn-plain report-btn" bindtap="openReport">📄 用这张开报表</button>
+    <block wx:if="{{!readonly}}">
+      <button class="btn-primary save-btn" bindtap="onSave">{{saving ? '保存中…' : '保存修改'}}</button>
+      <button class="btn-plain report-btn" bindtap="openReport">📄 用这张开报表</button>
+    </block>
   </block>
 </view>

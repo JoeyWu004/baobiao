@@ -10,7 +10,8 @@ const db = cloud.database();
 // API Key 与请求地址按服务商分别存：kimiApiKey / deepseekApiKey + deepseekBaseUrl
 // 模型优先取用户选择的（users.kimiModel），回退环境变量 KIMI_MODEL，再回退默认
 const DEFAULT_MODEL = "kimi-k2.6";
-const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3", "deepseek-v4-flash-vision-exp"];
+// DeepSeek 调用名：deepseek-flash（V4.1 Flash，2026-09-10 GA，原生多模态视觉）
+const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3", "deepseek-flash"];
 const KIMI_URL = "https://api.moonshot.cn/v1/chat/completions";
 const DEEPSEEK_DEFAULT_URL = "https://api.deepseek.com/v1/chat/completions";
 

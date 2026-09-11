@@ -177,9 +177,14 @@ Page({
     const name = e.currentTarget.dataset.name;
     const label =
       type === "purchase" ? "进货记录" : type === "product" ? "商品" : "报表";
+    // 进货记录彻底删除会连带作废账目，文案要说清楚
+    const content =
+      type === "purchase"
+        ? `将永久删除「${name}」的进货记录，无法恢复。\n\n该发票当初入库的数量会从商品库存扣回、进价回退到上一条有效进价，相关的数量/价格记录会标注「发票已删除」。确定吗？`
+        : `将永久删除「${name}」的${label}，无法恢复，确定吗？`;
     wx.showModal({
       title: "彻底删除",
-      content: `将永久删除「${name}」的${label}，无法恢复，确定吗？`,
+      content,
       confirmColor: "#fa5151",
       success: (res) => {
         if (!res.confirm) return;
@@ -193,11 +198,13 @@ Page({
         };
         const fail = () => wx.showToast({ title: "删除失败", icon: "none" });
         if (type === "purchase") {
-          db()
-            .collection("purchases")
-            .doc(id)
-            .remove()
-            .then(done)
+          // 走云函数：物理删除的同时扣回库存、回退进价（客户端裸删做不到多集合一致）
+          callReportOps("purgePurchase", { purchaseId: id })
+            .then((r) => {
+              const rr = r && r.result;
+              if (rr && rr.success) done();
+              else wx.showToast({ title: (rr && rr.msg) || "删除失败", icon: "none" });
+            })
             .catch(fail);
         } else {
           callReportOps("purgeReport", { reportId: id }).then((r) => {

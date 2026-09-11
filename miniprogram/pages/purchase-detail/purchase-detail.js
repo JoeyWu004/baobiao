@@ -1,6 +1,7 @@
 // pages/purchase-detail/purchase-detail.js 进货明细
 const { db, callReportOps } = require("../../utils/cloud");
 const { fmtMoney, fmtDate, roundMoney } = require("../../utils/format");
+const { modelLabel: modelLabelOf } = require("../../utils/modelLabel");
 
 Page({
   data: {
@@ -11,12 +12,22 @@ Page({
     loading: true,
     saving: false,
     modelLabel: "",
+    missing: false, // 文档已被彻底删除（原来这种情况是白屏）
+    inTrash: false, // 该发票在回收站
+    readonly: false, // 回收站里的发票只读
   },
 
   onLoad(options) {
     this.purchaseId = options.id || "";
     this._uid = 0;
     this.load();
+  },
+
+  // 首次进入由 onLoad 加载；之后仅在只读/缺失态重载——编辑态下重载会冲掉用户还没保存的改动
+  onShow() {
+    if (this._loaded && (this.data.missing || this.data.readonly || !this.data.purchase)) {
+      this.load();
+    }
   },
 
   newUid() {
@@ -26,15 +37,16 @@ Page({
 
   // 识别模型 id → 展示名（进货详情页标注识别这张发票用的模型）
   modelLabel(value) {
-    const m = String(value || "");
-    if (/^kimi-k2/i.test(m)) return "Kimi K2.6";
-    if (/^kimi-k3/i.test(m)) return "Kimi K3";
-    if (/^deepseek/i.test(m)) return "DeepSeek V4 Flash";
-    return m || "";
+    return modelLabelOf(value);
   },
 
   async load() {
-    if (!this.purchaseId) return;
+    this._loaded = true;
+    if (!this.purchaseId) {
+      // 原来这里直接 return，loading 停在 true → 永远「加载中…」
+      this.setData({ loading: false, missing: true });
+      return;
+    }
     this.setData({ loading: true });
     try {
       const res = await db().collection("purchases").doc(this.purchaseId).get();
@@ -54,11 +66,16 @@ Page({
           amountText: fmtMoney(amount),
         };
       });
+      const inTrash = p.deleted === true;
       this.setData({
         purchase: p,
         items,
         totalText: fmtMoney(p.totalAmount || items.reduce((s, it) => s + it.amount, 0)),
         modelLabel: this.modelLabel(p.model),
+        inTrash,
+        // 回收站里的发票只读：否则保存会静默写回已删除的记录，还会触发库存重算
+        readonly: inTrash,
+        missing: false,
       });
       // 发票图片
       if (p.fileID) {
@@ -72,10 +89,30 @@ Page({
       }
     } catch (e) {
       console.error("进货明细加载失败", e);
-      wx.showToast({ title: "加载失败", icon: "none" });
+      // 文档已被彻底删除时 doc().get() 会抛错，与真正的加载失败区分开，给个明确空态（原来只 toast + 白屏）
+      let missing = false;
+      try {
+        const cnt = await db()
+          .collection("purchases")
+          .where({ _id: this.purchaseId })
+          .count();
+        missing = (cnt.total || 0) === 0;
+      } catch (e2) {
+        missing = false;
+      }
+      if (missing) this.setData({ missing: true, purchase: null, readonly: true });
+      else wx.showToast({ title: "加载失败", icon: "none" });
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  goTrash() {
+    wx.navigateTo({ url: "/pages/trash/trash" });
+  },
+
+  goBack() {
+    wx.navigateBack();
   },
 
   previewImg(e) {
@@ -280,13 +317,20 @@ Page({
         }
       }
 
+      const updateData = {};
+      // 供应商无条件同步：只改供应商、数量与进价都没动时 changed 为 false，
+      // supplier 原来被写在 if (changed) 里 → 改了发票供应商，商品编辑页却不更新
+      if (supplier !== undefined) updateData.supplier = supplier;
       if (changed) {
-        const updateData = { units, supplier, updateTime: db().serverDate() };
+        updateData.units = units;
         if (units[0].name === unitName) {
           updateData.unit = units[0].name;
           updateData.costPrice = Number(units[0].costPrice || 0);
           updateData.quantity = Number(units[0].quantity || 0);
         }
+      }
+      if (Object.keys(updateData).length) {
+        updateData.updateTime = db().serverDate();
         await db().collection("products").doc(product._id).update({ data: updateData });
       }
     }
@@ -294,6 +338,11 @@ Page({
 
   // 保存修改：统一处理改名→同步报表/进货/历史；按差额修正商品库库存/进价；同步日期/供应商。
   async onSave() {
+    // 回收站里的发票只读（按钮已隐藏，这里再兜一道，防止别处误触发写回已删除的记录）
+    if (this.data.readonly) {
+      wx.showToast({ title: "该发票在回收站，请先恢复", icon: "none" });
+      return;
+    }
     const { items, purchase } = this.data;
     if (!items.length) {
       wx.showToast({ title: "请至少保留一行明细", icon: "none" });
@@ -437,9 +486,11 @@ Page({
     });
   },
 
-  // 日期/供应商同步：由本进货建档的未合并商品，更新 source.date / source.supplier
+  // 日期/供应商同步：由本进货建档的商品，更新顶层 supplier 与 source.date / source.supplier
   async syncProductSource(date, supplier) {
-    const pageSize = 100;
+    // pageSize 必须 ≤20（小程序端单次查询上限），原来写 100 会一轮就 break，
+    // 本发票建的商品超过 20 个时只同步得到前 20 个
+    const pageSize = 20;
     let offset = 0;
     for (;;) {
       const res = await db()
@@ -452,16 +503,17 @@ Page({
       for (const p of res.data) {
         if (p.deleted) continue;
         const src = p.source || {};
-        await db().collection("products").doc(p._id).update({
-          data: {
-            source: {
-              ...src,
-              date: date || src.date || "",
-              supplier: supplier !== undefined ? supplier : src.supplier,
-            },
-            updateTime: db().serverDate(),
+        const data = {
+          source: {
+            ...src,
+            date: date || src.date || "",
+            supplier: supplier !== undefined ? supplier : src.supplier,
           },
-        });
+          updateTime: db().serverDate(),
+        };
+        // 顶层 supplier 才是商品列表/商品选择器/商品编辑页显示的那个（source 里那个只在来源页显示）
+        if (supplier !== undefined) data.supplier = supplier;
+        await db().collection("products").doc(p._id).update({ data });
       }
       offset += res.data.length;
       if (res.data.length < pageSize) break;

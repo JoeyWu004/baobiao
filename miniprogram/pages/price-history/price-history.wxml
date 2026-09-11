@@ -39,13 +39,14 @@
 
   <!-- 历史记录 -->
   <view
-    class="card history-card"
+    class="card history-card {{item.rowClass}}"
     wx:for="{{list}}"
     wx:key="_id"
     wx:if="{{filter === 'all' || item.priceType === filter}}"
     data-id="{{item._id}}"
     data-source="{{item.source}}"
     data-purchase-id="{{item.purchaseId}}"
+    data-purchase-state="{{item.purchaseState}}"
     data-report-id="{{item.reportId}}"
     bindtap="onCardTap"
     bindlongpress="onDeleteRecord"
@@ -56,6 +57,7 @@
         <text class="history-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
         <text class="history-type {{item.typeClass}}">{{item.typeLabel}}</text>
         <text class="history-source" wx:if="{{item.sourceText}}">{{item.sourceText}}</text>
+        <text class="history-status" wx:if="{{item.statusText}}">{{item.statusText}}</text>
         <text class="history-go" wx:if="{{item.linkable}}">查看 ›</text>
       </view>
     </view>

@@ -143,7 +143,8 @@ async function updateKimiKey(OPENID, event) {
 
 // 更新识别模型（账户绑定，发票识别用；与 API Key 独立设置）
 // kimiModel 存当前识别模型，可为 Kimi 或 DeepSeek（前缀区分服务商）
-const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3", "deepseek-v4-flash-vision-exp"];
+// deepseek-flash = DeepSeek V4.1 Flash（2026-09-10 GA，原生多模态视觉）
+const ALLOWED_MODELS = ["kimi-k2.6", "kimi-k3", "deepseek-flash"];
 
 async function updateKimiModel(OPENID, event) {
   const model = String(event.kimiModel || "").trim();

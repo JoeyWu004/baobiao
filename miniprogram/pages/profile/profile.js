@@ -1,6 +1,7 @@
 // pages/profile/profile.js 我的：当前用户 + 回收站 + 服务说明 + 识别设置 + 退出登录
 const { getSession, isSessionValid, saveSession, clearSession } = require("../../utils/auth");
 const { callUserOps } = require("../../utils/cloud");
+const { modelLabel: modelLabelOf } = require("../../utils/modelLabel");
 
 // 发票识别可选模型（与 userOps / invoiceOCR 的 ALLOWED_MODELS 保持一致）
 const KIMI_MODELS = [
@@ -13,8 +14,8 @@ const KIMI_MODELS = [
     label: "Kimi K3",
   },
   {
-    value: "deepseek-v4-flash-vision-exp",
-    label: "DeepSeek V4 Flash",
+    value: "deepseek-flash",
+    label: "DeepSeek V4.1 Flash",
   },
 ];
 
@@ -174,7 +175,9 @@ Page({
 
   modelLabel(value) {
     const m = KIMI_MODELS.find((x) => x.value === value);
-    return m ? m.label : KIMI_MODELS[0].label;
+    // 不在选择列表里的值（例如 DeepSeek 改名前的旧 id）交给共用映射，
+    // 认不出来就原样显示 id —— 原来兜底成列表第一项，会把别的模型显示成「Kimi K2.6」
+    return m ? m.label : modelLabelOf(value);
   },
 
   openRecSettings() {

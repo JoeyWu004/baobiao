@@ -2,6 +2,7 @@
 const { db } = require("../../utils/cloud");
 const { fmtMoney, roundMoney, fmtDate } = require("../../utils/format");
 const recognition = require("../../utils/recognition");
+const { modelLabel: modelLabelOf } = require("../../utils/modelLabel");
 
 Page({
   data: {
@@ -65,11 +66,7 @@ Page({
 
   // 识别模型 id → 展示名（供确认页标注「这张图是哪个模型识别的」）
   modelLabel(value) {
-    const m = String(value || "");
-    if (/^kimi-k2/i.test(m)) return "Kimi K2.6";
-    if (/^kimi-k3/i.test(m)) return "Kimi K3";
-    if (/^deepseek/i.test(m)) return "DeepSeek V4 Flash";
-    return m || "";
+    return modelLabelOf(value);
   },
 
   ci() {

@@ -13,13 +13,14 @@
   </view>
 
   <view
-    class="card hist-card"
+    class="card hist-card {{item.rowClass}}"
     wx:for="{{list}}"
     wx:key="_id"
     wx:if="{{filter === 'all' || item.group === filter}}"
     data-id="{{item._id}}"
     data-source="{{item.source}}"
     data-purchase-id="{{item.purchaseId}}"
+    data-purchase-state="{{item.purchaseState}}"
     data-report-id="{{item.reportId}}"
     bindtap="onCardTap"
     bindlongpress="onDeleteRecord"
@@ -29,6 +30,7 @@
       <view class="hist-tags">
         <text class="hist-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
         <text class="hist-source">{{item.sourceText}}</text>
+        <text class="hist-status" wx:if="{{item.statusText}}">{{item.statusText}}</text>
         <text class="hist-go" wx:if="{{item.linkable}}">查看 ›</text>
       </view>
     </view>

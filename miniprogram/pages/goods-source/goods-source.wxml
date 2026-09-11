@@ -19,7 +19,7 @@
   <view class="card src-list-card" wx:if="{{!loading && purchaseCount > 0}}">
     <view class="src-list-title">进货记录（{{purchaseCount}} 笔）</view>
     <view
-      class="src-row"
+      class="src-row {{item.rowClass}}"
       wx:for="{{purchasesList}}"
       wx:key="_id"
       data-id="{{item._id}}"
@@ -27,12 +27,14 @@
     >
       <view class="src-row-info">
         <view class="src-row-top">
-          <text class="src-row-supplier">{{item.supplierText}}</text>
+          <text class="src-row-supplier" wx:if="{{item.supplierText}}">{{item.supplierText}}</text>
           <text class="src-tag" wx:if="{{item.isSource}}">来源</text>
+          <text class="src-tag src-tag-status" wx:if="{{item.statusText}}">{{item.statusText}}</text>
         </view>
         <view class="src-row-sub">日期：{{item.date || '未填'}}</view>
       </view>
-      <view class="src-row-right">
+      <!-- 已彻底删除的发票只剩反推出来的灰行，没有金额可显示 -->
+      <view class="src-row-right" wx:if="{{!item.ghost}}">
         <text class="src-row-amount">¥{{item.amountText}}</text>
         <text class="src-row-arrow">›</text>
       </view>

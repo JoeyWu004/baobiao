@@ -123,6 +123,26 @@
   margin-left: 2rpx;
 }
 
+/* 来源发票在回收站 / 已彻底删除：整卡灰化 + 状态标签 */
+.hist-card.row-trash,
+.hist-card.row-voided {
+  opacity: 0.55;
+  background: #f7f7f7;
+}
+
+/* 已作废的变动量加删除线 */
+.hist-card.row-voided .hist-delta {
+  text-decoration: line-through;
+}
+
+.hist-status {
+  font-size: 22rpx;
+  color: #888;
+  background: #ededed;
+  border-radius: 6rpx;
+  padding: 2rpx 12rpx;
+}
+
 /* 补齐旧发票关联 */
 .backfill-wrap {
   margin-top: 8rpx;

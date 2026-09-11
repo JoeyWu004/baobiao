@@ -2,6 +2,7 @@
 const { db, callReportOps } = require("../../utils/cloud");
 const { fmtMoney, fmtDateTime, toDate } = require("../../utils/format");
 const { drawPriceChart } = require("../../utils/priceChart");
+const { fetchPurchaseStates, markOf } = require("../../utils/purchaseState");
 
 // 价格变动原因 → 展示文案；来源与所属组（发票/进货都归「发票」组，可点跳同一进货明细）
 const SOURCE_MAP = { manual: "手动", invoice: "发票", report: "报表", "purchase-edit": "进货" };
@@ -69,9 +70,18 @@ Page({
           linkable: (group === "report" && !!reportId) || (group === "invoice" && !!purchaseId),
         };
       });
+      // 来源发票被软删（回收站）/ 彻底删除 → 灰显标注并禁止跳转
+      const states = await fetchPurchaseStates(
+        list.filter((l) => l.group === "invoice").map((l) => l.purchaseId)
+      );
+      const marked = list.map((l) => {
+        const m = markOf(states, l.purchaseId);
+        // 发票已彻底删除：明细页已不存在，点不开
+        return Object.assign({}, l, m, { linkable: l.linkable && m.canOpen });
+      });
       // 尚未标注来源的旧记录数（底部「补齐来源」按钮由此显隐）
-      const pendingCount = list.filter((l) => !l.source).length;
-      this.setData({ list, hasData: list.length > 0, pendingCount });
+      const pendingCount = marked.filter((l) => !l.source).length;
+      this.setData({ list: marked, hasData: marked.length > 0, pendingCount });
       wx.nextTick(() => this.renderChart());
     } catch (e) {
       console.error("价格历史加载失败", e);
@@ -156,6 +166,11 @@ Page({
   // 点击价格记录：报表→报表详情；发票/进货→进货明细
   onCardTap(e) {
     const ds = e.currentTarget.dataset || {};
+    // 来源发票已彻底删除：不再跳转（跳过去明细页也是空的），给一句明确提示
+    if (ds.purchaseState === "purged") {
+      wx.showToast({ title: "该发票已彻底删除", icon: "none" });
+      return;
+    }
     const group = groupOf(ds.source || "");
     if (group === "report") {
       if (!ds.reportId) return;
@@ -296,8 +311,10 @@ Page({
     const seriesList = [];
 
     types.forEach((t) => {
+      // 已彻底删除的发票：进价已回退到上一条有效价，留在图里会和商品当前价矛盾 → 排除；
+      // 在回收站的记录不作废，照常画线
       const recs = this.data.list
-        .filter((r) => r.priceType === t)
+        .filter((r) => r.priceType === t && r.purchaseState !== "purged")
         .sort((a, b) => a.timeMs - b.timeMs);
       if (!recs.length) return;
       let current = Number(recs[0].oldPrice);

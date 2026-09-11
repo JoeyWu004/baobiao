@@ -161,3 +161,43 @@
 .report-btn {
   width: 100%;
 }
+
+/* 回收站提示横幅（只读态） */
+.trash-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  background: #fff7e6;
+  border: 2rpx solid #ffe0a3;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.trash-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #fa8c16;
+  line-height: 1.5;
+}
+
+.trash-link {
+  font-size: 26rpx;
+  color: #fa8c16;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* 空态里的按钮（记录已被彻底删除） */
+.empty-btn {
+  margin: 24rpx auto 0;
+  width: 240rpx;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  color: #07c160;
+  background: #eafaf0;
+  border: 2rpx solid #b7eccd;
+  border-radius: 12rpx;
+}

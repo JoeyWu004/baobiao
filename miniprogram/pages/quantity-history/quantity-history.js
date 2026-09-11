@@ -1,6 +1,7 @@
 // pages/quantity-history/quantity-history.js 商品数量变动记录
 const { db, callReportOps } = require("../../utils/cloud");
 const { fmtDateTime, toDate } = require("../../utils/format");
+const { fetchPurchaseStates, markOf } = require("../../utils/purchaseState");
 
 // purchase-edit（在进货明细里改数量）视作发票类；标签区分「发票/进货」，但都归「发票」筛选组、都可点进同一进货明细
 const SOURCE_MAP = { manual: "手动", invoice: "发票", report: "报表", "purchase-edit": "进货" };
@@ -63,9 +64,18 @@ Page({
           linkable: (group === "invoice" && !!purchaseId) || (group === "report" && !!reportId),
         };
       });
+      // 来源发票被软删（回收站）/ 彻底删除 → 灰显标注并禁止跳转
+      const states = await fetchPurchaseStates(
+        list.filter((l) => l.group === "invoice").map((l) => l.purchaseId)
+      );
+      const marked = list.map((l) => {
+        const m = markOf(states, l.purchaseId);
+        // 发票已彻底删除：明细页已不存在，点不开
+        return Object.assign({}, l, m, { linkable: l.linkable && m.canOpen });
+      });
       // 待补齐关联的旧发票/进货记录数量（底部按钮由此显隐）
-      const pendingCount = list.filter((l) => l.group === "invoice" && !l.purchaseId).length;
-      this.setData({ list, pendingCount });
+      const pendingCount = marked.filter((l) => l.group === "invoice" && !l.purchaseId).length;
+      this.setData({ list: marked, pendingCount });
     } catch (e) {
       console.error("数量记录加载失败", e);
       wx.showToast({ title: "加载失败", icon: "none" });
@@ -110,6 +120,11 @@ Page({
   // 点击记录：发票/进货 → 对应进货明细页；报表 → 对应报表详情页
   onCardTap(e) {
     const ds = e.currentTarget.dataset || {};
+    // 来源发票已彻底删除：不再跳转（跳过去明细页也是空的），给一句明确提示
+    if (ds.purchaseState === "purged") {
+      wx.showToast({ title: "该发票已彻底删除", icon: "none" });
+      return;
+    }
     const source = ds.source || "";
     const purchaseId = ds.purchaseId || "";
     const reportId = ds.reportId || "";

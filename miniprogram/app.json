@@ -10,6 +10,7 @@
     "pages/goods-source/goods-source",
     "pages/map/map",
     "pages/profile/profile",
+    "pages/changelog/changelog",
     "pages/trash/trash",
     "pages/category/category",
     "pages/category-goods/category-goods",

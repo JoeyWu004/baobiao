@@ -9,7 +9,7 @@
 
   <view class="rebuild-bar">
     <view class="rebuild-btn" bindtap="onRebuildQty">重建数量记录（含手动）</view>
-    <view class="rebuild-tip">按全部记录重算库存并保留记录；是否删除旧手动记录由你自行处理</view>
+    <view class="rebuild-tip">按全部记录重算库存并保留记录</view>
   </view>
 
   <view
@@ -44,7 +44,7 @@
   <!-- 补齐旧发票/进货记录关联 -->
   <view class="backfill-wrap" wx:if="{{pendingCount > 0}}">
     <view class="backfill-btn" bindtap="onLinkBackfill">补齐发票关联</view>
-    <view class="backfill-tip">{{pendingCount}} 条发票/进货记录未关联进货明细，点击可按时间就近匹配，之后点记录可直达来源</view>
+    <view class="backfill-tip">{{pendingCount}} 条发票/进货记录未关联进货明细，点击可按时间就近匹配</view>
   </view>
 
   <view class="empty" wx:if="{{!loading && list.length === 0}}">暂无数量变动记录</view>

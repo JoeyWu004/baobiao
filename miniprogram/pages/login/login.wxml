@@ -21,7 +21,7 @@
       value="{{nickname}}"
       bindinput="onNickInput"
     />
-    <view class="profile-tip">留空则显示「微信用户」，登录后可在「我的」页修改</view>
+    <view class="profile-tip">默认「微信用户」，登录后可在「我的」页修改</view>
   </view>
 
   <button class="login-btn {{logging ? 'btn-disabled' : ''}}" bindtap="onLogin">

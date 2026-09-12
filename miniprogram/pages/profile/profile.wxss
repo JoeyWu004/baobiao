@@ -250,3 +250,19 @@
   margin-top: 32rpx;
   line-height: 1.6;
 }
+
+/* 联系作者：整行可点，复制邮箱 */
+.contact {
+  margin-top: 40rpx;
+  text-align: center;
+}
+
+.contact:active {
+  opacity: 0.6;
+}
+
+.contact-text {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+}

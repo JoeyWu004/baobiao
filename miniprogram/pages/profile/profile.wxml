@@ -40,12 +40,24 @@
     <text class="menu-arrow">›</text>
   </view>
 
+  <view class="card menu-card" bindtap="goChangelog">
+    <view class="menu-text-col">
+      <text class="menu-text">🆕 更新日志</text>
+      <text class="menu-sub">当前版本 {{currentVersion}}</text>
+    </view>
+    <text class="menu-arrow">›</text>
+  </view>
+
   <view class="card logout-card" bindtap="onLogout">
     <text class="logout-text">退出登录</text>
   </view>
 
   <view class="tip">
     数据按微信账号隔离，切换账号后只能看到自己的报表和商品。
+  </view>
+
+  <view class="contact" bindtap="copyEmail">
+    <text class="contact-text">联系作者：{{authorEmail}}</text>
   </view>
 
   <!-- 服务说明编辑弹窗 -->

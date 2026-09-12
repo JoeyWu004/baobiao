@@ -1,7 +1,11 @@
-// pages/profile/profile.js 我的：当前用户 + 回收站 + 服务说明 + 识别设置 + 退出登录
+// pages/profile/profile.js 我的：当前用户 + 回收站 + 服务说明 + 识别设置 + 更新日志 + 退出登录
 const { getSession, isSessionValid, saveSession, clearSession } = require("../../utils/auth");
 const { callUserOps } = require("../../utils/cloud");
 const { modelLabel: modelLabelOf } = require("../../utils/modelLabel");
+const { CURRENT_VERSION } = require("../../utils/changelog");
+
+// 联系作者：只在这里写一次，WXML 显示 data.authorEmail，复制也用同一个源
+const AUTHOR_EMAIL = "mr.wu5457@bupt.edu.cn";
 
 // 发票识别可选模型（与 userOps / invoiceOCR 的 ALLOWED_MODELS 保持一致）
 const KIMI_MODELS = [
@@ -23,6 +27,9 @@ Page({
   data: {
     userInfo: null,
     avatarUrl: "",
+    // 更新日志入口副标题
+    currentVersion: CURRENT_VERSION,
+    authorEmail: AUTHOR_EMAIL,
     // 编辑资料（头像 / 昵称，同步微信）
     showProfileModal: false,
     editNickname: "",
@@ -271,6 +278,18 @@ Page({
 
   goTrash() {
     wx.navigateTo({ url: "/pages/trash/trash" });
+  },
+
+  goChangelog() {
+    wx.navigateTo({ url: "/pages/changelog/changelog" });
+  },
+
+  // 联系作者：点一下把邮箱复制走（微信自己会弹「内容已复制」，不再叠一个 toast）
+  copyEmail() {
+    wx.setClipboardData({
+      data: AUTHOR_EMAIL,
+      fail: () => wx.showToast({ title: "复制失败，请长按选择", icon: "none" }),
+    });
   },
 
   goPurchases() {

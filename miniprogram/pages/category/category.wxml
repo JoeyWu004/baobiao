@@ -25,7 +25,7 @@
 
   <view class="empty" wx:if="{{!loading && nodes.length === 0}}">
     <view>还没有分类</view>
-    <view>点「新增一级分类」开始搭建，如：卧室、厨房</view>
+    <view>点「新增一级分类」开始搭建</view>
   </view>
 
   <view wx:if="{{loading}}" class="empty">加载中…</view>

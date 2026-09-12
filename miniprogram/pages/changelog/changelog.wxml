@@ -10,6 +10,7 @@
     <view class="ver-head">
       <view class="ver-dot"></view>
       <text class="ver-name">{{item.version}}</text>
+      <text class="ver-commit" wx:if="{{item.commit}}">{{item.commit}}</text>
       <text class="ver-date">{{item.date}}</text>
     </view>
     <view class="ver-item" wx:for="{{item.items}}" wx:for-item="sub" wx:key="text">

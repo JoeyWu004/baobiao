@@ -52,15 +52,29 @@
 }
 
 .ver-name {
+  flex-shrink: 0;
   font-size: 32rpx;
   font-weight: 600;
   color: #111;
 }
 
+/* 发版提交的中文说明：跟在版本号后面，过长省略，不挤掉右侧日期 */
+.ver-commit {
+  flex: 1;
+  min-width: 0;
+  margin-left: 8rpx;
+  font-size: 22rpx;
+  color: #999;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .ver-date {
+  flex-shrink: 0;
   font-size: 24rpx;
   color: #999;
-  margin-left: auto;
+  margin-left: 12rpx;
 }
 
 /* 条目：类型标签 + 说明，标签固定宽度以免说明文字参差 */

@@ -1,8 +1,9 @@
 // utils/changelog.js 更新日志内容（「我的」→ 更新日志）
 //
-// 维护方式：发版时在最前面加一个版本对象，并把 CURRENT_VERSION 改成新版本号。
+// 维护方式：发版时在最前面加一个版本对象，把 CURRENT_VERSION 改成新版本号，
+// 并把 commit 填成这次发版提交的中文说明（提交信息去掉「vX.Y.Z 」前缀的那部分）。
 // type 只用「新增 / 优化 / 修复」三种，页面按它给标签上色（见 pages/changelog/changelog.js）。
-// 写法面向使用者（经销商/安装商），不要写成提交信息或内部实现术语。
+// items 的写法面向使用者（经销商/安装商），不要写成提交信息或内部实现术语。
 //
 // v1.2.2 是本仓库最早的提交，再往前的版本没有留存记录。
 const CURRENT_VERSION = "v1.3.6";
@@ -10,6 +11,7 @@ const CURRENT_VERSION = "v1.3.6";
 const CHANGELOG = [
   {
     version: "v1.3.6",
+    commit: "新增更新日志页与联系作者入口",
     date: "2026-09-12",
     items: [
       {
@@ -28,6 +30,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.3.5",
+    commit: "优化进货记录删除的同步逻辑",
     date: "2026-09-11",
     items: [
       {
@@ -54,6 +57,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.3.4",
+    commit: "批量修复同步问题",
     date: "2026-09-08",
     items: [
       {
@@ -88,6 +92,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.3.2",
+    commit: "修复1.3.1的bug",
     date: "2026-09-05",
     items: [
       {
@@ -110,6 +115,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.3.1",
+    commit: "修复同步bug",
     date: "2026-09-05",
     items: [
       {
@@ -136,6 +142,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.2.4",
+    commit: "新增商品来源页",
     date: "2026-09-01",
     items: [
       {
@@ -154,6 +161,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.2.3",
+    commit: "修复小数点bug",
     date: "2026-09-01",
     items: [
       {
@@ -164,6 +172,7 @@ const CHANGELOG = [
   },
   {
     version: "v1.2.2",
+    commit: "优化收支统计页面",
     date: "2026-08-19",
     items: [
       {

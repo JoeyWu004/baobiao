@@ -19,6 +19,7 @@ Page({
     // 预挂 class：WXML 里没法按中文 type 拼 class，统一在这里算好
     const versions = CHANGELOG.map((v) => ({
       version: v.version,
+      commit: v.commit || "",
       date: v.date,
       items: (v.items || []).map((it) => ({
         type: it.type,

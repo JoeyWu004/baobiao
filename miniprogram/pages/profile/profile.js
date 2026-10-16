@@ -30,6 +30,8 @@ Page({
     // 更新日志入口副标题
     currentVersion: CURRENT_VERSION,
     authorEmail: AUTHOR_EMAIL,
+    // 页脚版权年份：取运行时年份，免得每年回来改代码
+    footYear: new Date().getFullYear(),
     // 编辑资料（头像 / 昵称，同步微信）
     showProfileModal: false,
     editNickname: "",

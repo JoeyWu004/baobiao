@@ -266,3 +266,14 @@
   font-size: 24rpx;
   color: #999;
 }
+
+/* 页脚：版权 / 技术栈 / 免责声明 / 作者 / 仓库；长 URL 允许断行 */
+.footer {
+  margin-top: 24rpx;
+  padding: 0 24rpx;
+  font-size: 20rpx;
+  color: #bbb;
+  text-align: center;
+  line-height: 1.7;
+  word-break: break-all;
+}

@@ -35,13 +35,23 @@ Page({
     if (!this.data.productId) return;
     this.setData({ loading: true });
     try {
-      const res = await db()
-        .collection("quantityHistory")
-        .where({ productId: this.data.productId })
-        .orderBy("changeTime", "desc")
-        .limit(100)
-        .get();
-      const list = res.data.map((h) => {
+      // 翻页取全：小程序端单次查询最多返回 20 条，limit 传更大的值会被静默截断
+      // （原来写 100 → 变动记录超过 20 条的商品，这里只显示最近 20 条）
+      const pageSize = 20;
+      const all = [];
+      for (;;) {
+        const res = await db()
+          .collection("quantityHistory")
+          .where({ productId: this.data.productId })
+          .orderBy("changeTime", "desc")
+          .skip(all.length)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        all.push(...res.data);
+        if (res.data.length < pageSize) break;
+      }
+      const list = all.map((h) => {
         const d = toDate(h.changeTime);
         const delta = Number(h.delta) || 0;
         const source = h.source || "manual";

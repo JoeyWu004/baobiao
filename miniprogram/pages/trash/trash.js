@@ -51,15 +51,25 @@ Page({
       }));
 
       // 已删除的进货记录
+      // 翻页取全：小程序端单次查询最多返回 20 条（limit 传更大值会被静默截断），
+      // 原来写 100 → 列表实际只有 20 条，与上面 count() 出来的计数对不上
       const _ = db().command;
-      const purRes = await db()
-        .collection("purchases")
-        .where({ deleted: true })
-        .orderBy("createTime", "desc")
-        .limit(100)
-        .get();
+      const PAGE = 20;
+      const purDeleted = [];
+      for (;;) {
+        const res = await db()
+          .collection("purchases")
+          .where({ deleted: true })
+          .orderBy("createTime", "desc")
+          .skip(purDeleted.length)
+          .limit(PAGE)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        purDeleted.push(...res.data);
+        if (res.data.length < PAGE) break;
+      }
       const purTotal = (await db().collection("purchases").where({ deleted: true }).count()).total;
-      purRes.data.forEach((p) => {
+      purDeleted.forEach((p) => {
         list.push({
           type: "purchase",
           _id: p._id,
@@ -72,13 +82,20 @@ Page({
       });
 
       // 已删除的商品（不在查询里排序，避免组合索引依赖，统一按删除时间在内存中排序）
-      const prodRes = await db()
-        .collection("products")
-        .where({ deleted: true })
-        .limit(100)
-        .get();
+      const prodDeleted = [];
+      for (;;) {
+        const res = await db()
+          .collection("products")
+          .where({ deleted: true })
+          .skip(prodDeleted.length)
+          .limit(PAGE)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        prodDeleted.push(...res.data);
+        if (res.data.length < PAGE) break;
+      }
       const prodTotal = (await db().collection("products").where({ deleted: true }).count()).total;
-      prodRes.data.forEach((p) => {
+      prodDeleted.forEach((p) => {
         list.push({
           type: "product",
           _id: p._id,

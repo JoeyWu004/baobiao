@@ -47,12 +47,23 @@ Page({
   async loadList() {
     this.setData({ loading: true });
     try {
-      const res = await db()
-        .collection("products")
-        .orderBy("createTime", "desc")
-        .limit(100)
-        .get();
-      const list = res.data
+      // 翻页取全：小程序端单次查询最多返回 20 条，limit 传更大的值会被静默截断
+      // （原来写 100 → 商品超过 20 个后，列表和顶部计数都只反映最近 20 个，
+      //  搜索也只在这 20 个里过滤，老商品表现为「不见了」）
+      const pageSize = 20;
+      const all = [];
+      for (;;) {
+        const res = await db()
+          .collection("products")
+          .orderBy("createTime", "desc")
+          .skip(all.length)
+          .limit(pageSize)
+          .get();
+        if (!res.data || res.data.length === 0) break;
+        all.push(...res.data);
+        if (res.data.length < pageSize) break;
+      }
+      const list = all
         .filter((p) => !p.deleted) // 回收站里的商品不显示
         .map((p) => ({
           ...p,

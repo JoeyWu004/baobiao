@@ -33,11 +33,19 @@ Page({
     const sort = getApp().globalData.reportSort || { key: "date", order: "desc" };
     this.setData({ sortKey: sort.key, sortOrder: sort.order });
     try {
-      const res = await callReportOps("listReports", { limit: 50 });
-      if (!res.result || !res.result.success) {
-        throw new Error((res.result && res.result.msg) || "加载失败");
+      // 和商品页一样翻页取全，避免搜索、排序只覆盖最近 50 张报表。
+      const pageSize = 50;
+      const all = [];
+      for (let page = 1; ; page++) {
+        const res = await callReportOps("listReports", { page, limit: pageSize });
+        if (!res.result || !res.result.success) {
+          throw new Error((res.result && res.result.msg) || "加载失败");
+        }
+        const batch = res.result.list;
+        all.push(...batch);
+        if (batch.length < pageSize) break;
       }
-      const list = res.result.list.map((r) => {
+      const list = all.map((r) => {
         const st = STATUS_MAP[r.status] || STATUS_MAP.pending;
         return {
           ...r,
@@ -48,8 +56,7 @@ Page({
           open: false, // 左滑展开
         };
       });
-      const total = res.result.total || res.result.list.length;
-      this.setData({ list, totalCount: total });
+      this.setData({ list, totalCount: list.length });
       this.applyFilter();
     } catch (e) {
       console.error("报表列表加载失败", e);
